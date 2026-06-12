@@ -1,0 +1,164 @@
+.sensor-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+.sensor-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.sensor-card.warning {
+  border-color: #fca5a5;
+  background: #fff9f9;
+}
+
+.sensor-card.disabled {
+  opacity: 0.6;
+}
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sc-title-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sc-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sc-status-dot-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.sc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.sc-dot.ok {
+  background: var(--accent-green);
+  animation: pulse-dot 2.5s infinite;
+}
+.sc-dot.warn,
+.sc-dot.off {
+  background: var(--accent-red);
+  animation: none;
+}
+
+/* Offline state: use neutral gray */
+.sc-dot.offline {
+  background: #9ca3af;
+  animation: none;
+}
+
+.sc-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  transition: all 0.15s;
+}
+
+.sc-arrow:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+.sc-arrow.off {
+  color: var(--accent-red);
+}
+
+.sc-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.sc-num {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  font-family: var(--font-mono);
+  transition: color 0.3s;
+}
+
+.sc-unit {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sc-bar-wrap {
+  margin-bottom: 10px;
+}
+
+.sc-bar-track {
+  height: 6px;
+  background: var(--bg-hover);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.sc-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition:
+    width 0.5s ease,
+    background 0.3s;
+}
+
+.sc-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.sc-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.sc-disabled-msg {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}

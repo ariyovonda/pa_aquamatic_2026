@@ -1,0 +1,43 @@
+.home-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 24px;
+}
+.home-card {
+  background: #fff;
+  padding: 28px;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.08);
+  text-align: center;
+  width: 420px;
+}
+.home-card h1 {
+  margin: 0 0 8px 0;
+}
+.home-card p {
+  color: #64748b;
+  margin-bottom: 18px;
+}
+.home-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.btn-primary {
+  background: #0b74ff;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-outline {
+  background: #fff;
+  color: #0b74ff;
+  border: 1px solid #0b74ff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}

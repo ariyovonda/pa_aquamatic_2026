@@ -1,0 +1,34 @@
+{
+  "fields": {
+    "temperature": {
+      "fields": {
+        "max": { "doubleValue": 32 },
+        "min": { "doubleValue": 22 }
+      }
+    },
+    "ph": {
+      "fields": {
+        "max": { "doubleValue": 8.5 },
+        "min": { "doubleValue": 6 }
+      }
+    },
+    "tds": {
+      "fields": {
+        "max": { "doubleValue": 300 },
+        "min": { "doubleValue": 100 }
+      }
+    },
+    "do": {
+      "fields": {
+        "max": { "doubleValue": 8 },
+        "min": { "doubleValue": 4 }
+      }
+    },
+    "turbidity": {
+      "fields": {
+        "max": { "doubleValue": 25 },
+        "min": { "doubleValue": 0 }
+      }
+    }
+  }
+}

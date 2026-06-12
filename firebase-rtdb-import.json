@@ -1,0 +1,64 @@
+{
+  "actuators": {
+    "aerator": {
+      "enabled": true,
+      "mode": "auto",
+      "running": false,
+      "status": "off",
+      "updatedAt": 1704067200000
+    },
+    "buzzer": {
+      "enabled": true,
+      "mode": "auto",
+      "running": false,
+      "status": "off",
+      "updatedAt": 1704067200000
+    },
+    "heater": {
+      "enabled": true,
+      "mode": "auto",
+      "running": false,
+      "status": "off",
+      "updatedAt": 1704067200000
+    },
+    "waterPump": {
+      "enabled": true,
+      "mode": "auto",
+      "running": false,
+      "status": "off",
+      "updatedAt": 1704067200000
+    }
+  },
+  "sensors": {
+    "do": {
+      "status": "normal",
+      "unit": "mg/L",
+      "updatedAt": 1704067200000,
+      "value": 5.5
+    },
+    "ph": {
+      "status": "normal",
+      "unit": "pH",
+      "updatedAt": 1704067200000,
+      "value": 7.0
+    },
+    "tds": {
+      "status": "normal",
+      "unit": "ppm",
+      "updatedAt": 1704067200000,
+      "value": 150
+    },
+    "temperature": {
+      "status": "normal",
+      "unit": "°C",
+      "updatedAt": 1704067200000,
+      "value": 26.5
+    },
+    "turbidity": {
+      "status": "normal",
+      "unit": "NTU",
+      "updatedAt": 1704067200000,
+      "value": 15
+    }
+  }
+}
