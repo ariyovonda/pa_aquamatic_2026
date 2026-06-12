@@ -195,6 +195,30 @@ export function AppProvider({ children }) {
     };
   }, [selectedFarmId]);
 
+  // Periodic check: mark sensors offline if no data for 60s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSensorData((prev) => {
+        const now = Date.now();
+        const next = {};
+        let changed = false;
+        Object.entries(prev).forEach(([key, val]) => {
+          const lastSeen = val.lastSeen ?? null;
+          const wasConnected = val.connected ?? true;
+          const nowConnected = !!lastSeen && now - lastSeen < 60000;
+          if (wasConnected !== nowConnected) changed = true;
+          next[key] = {
+            ...val,
+            status: nowConnected ? val.status || "normal" : "offline",
+            connected: nowConnected,
+          };
+        });
+        return changed ? next : prev;
+      });
+    }, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   // 3. Subscribe Realtime Database → aktuator
   useEffect(() => {
     let unsub;
