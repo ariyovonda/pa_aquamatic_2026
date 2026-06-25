@@ -1,329 +1,229 @@
-// src/firebase/firebaseService.js
-// Semua operasi baca/tulis ke Firebase
-
+// Semua operasi baca/tulis aplikasi menggunakan Firebase Realtime Database.
 import {
-  collection,
-  addDoc,
+  ref,
+  set,
+  get,
+  push,
+  onValue,
+  update,
   query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  Timestamp,
-  doc,
-  setDoc,
-  getDoc,
-} from "firebase/firestore";
+  orderByChild,
+  startAt,
+  endAt,
+  limitToLast,
+} from "firebase/database";
+import { rtdb } from "./config";
 
-import { ref, set, onValue, update } from "firebase/database";
+const SENSOR_KEYS = ["temperature", "ph", "tds", "do", "turbidity"];
 
-import { db, rtdb } from "./config";
+// Node-RED untuk instalasi ini menulis data kolam utama pada root RTDB
+// (/sensors, /actuators, /history). Profil pengguna membuat farm "default",
+// sehingga ia harus menunjuk jalur root yang sama, bukan /farms/default.
+// Farm tambahan tetap dapat memakai cabang /farms/<id> setelah flow Node-RED
+// mereka dikonfigurasi ke path tersebut.
+const farmPath = (farmId, path) =>
+  farmId && farmId !== "default" ? `farms/${farmId}/${path}` : path;
+const asMillis = (value) => {
+  if (typeof value === "number") return value;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
-// ─────────────────────────────────────────────────────────────
-//  REALTIME DATABASE  (data terkini sensor & aktuator)
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Subscribe data sensor terkini (real-time)
- * Path RTDB: /sensors/{sensorKey}  → { value, unit, status, updatedAt }
- * @param {function} callback - dipanggil setiap ada perubahan data
- * @returns unsubscribe function
- */
 export function subscribeSensors(callback, farmId = null) {
-  const path = farmId ? `farms/${farmId}/sensors` : "sensors";
-  const sensorsRef = ref(rtdb, path);
-  return onValue(sensorsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) callback(data);
+  return onValue(ref(rtdb, farmPath(farmId, "sensors")), (snapshot) => {
+    callback(snapshot.val() || {});
   });
 }
 
-/**
- * Subscribe status aktuator (real-time)
- * Path RTDB: /actuators/{deviceId}  → { enabled, running, mode, ... }
- */
 export function subscribeActuators(callback, farmId = null) {
-  const path = farmId ? `farms/${farmId}/actuators` : "actuators";
-  const actRef = ref(rtdb, path);
-  return onValue(actRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) callback(data);
+  return onValue(ref(rtdb, farmPath(farmId, "actuators")), (snapshot) => {
+    callback(snapshot.val() || {});
   });
 }
 
-/**
- * Update status aktuator di RTDB
- */
-export async function updateActuatorRTDB(deviceId, changes, farmId = null) {
-  const path = farmId
-    ? `farms/${farmId}/actuators/${deviceId}`
-    : `actuators/${deviceId}`;
-  const actRef = ref(rtdb, path);
-  await update(actRef, { ...changes, updatedAt: Date.now() });
+export async function updateSensorRTDB(sensorKey, changes, farmId = null) {
+  await update(ref(rtdb, farmPath(farmId, `sensors/${sensorKey}`)), {
+    ...changes,
+    updatedAt: Date.now(),
+  });
 }
 
-/**
- * Tulis data sensor terkini ke RTDB
- * Dipanggil oleh Node-RED / ESP langsung
- */
-export async function writeSensorRTDB(
+export async function updateActuatorRTDB(deviceId, changes, farmId = null) {
+  await update(ref(rtdb, farmPath(farmId, `actuators/${deviceId}`)), {
+    ...changes,
+    updatedAt: Date.now(),
+  });
+}
+
+// RPC web -> Node-RED. Browser tidak mengirim MQTT langsung; Node-RED yang
+// meneruskan command ke ESP sehingga kontrol tetap bekerja tanpa WebSocket MQTT.
+export async function requestActuatorCommand(deviceId, action, farmId = null) {
+  const normalizedAction = action === "on" || action === "enable" ? "on" : "off";
+  const requestedAt = Date.now();
+  await update(ref(rtdb, farmPath(farmId, `actuators/${deviceId}`)), {
+    enabled: normalizedAction === "on",
+    command: {
+      id: `web-${deviceId}-${requestedAt}`,
+      action: normalizedAction,
+      source: "web",
+      requestedAt,
+    },
+    updatedAt: requestedAt,
+  });
+}
+
+// Menggunakan update agar flag enabled tidak terhapus oleh pembacaan sensor baru.
+export async function writeSensorRTDB(sensorKey, value, unit, status, farmId = null) {
+  await updateSensorRTDB(sensorKey, { value, unit, status }, farmId);
+}
+
+/** Simpan satu titik historis pada /history/sensors/{sensorKey}/{pushId}. */
+export async function saveSensorReading(
   sensorKey,
   value,
   unit,
   status,
   farmId = null,
 ) {
-  const path = farmId
-    ? `farms/${farmId}/sensors/${sensorKey}`
-    : `sensors/${sensorKey}`;
-  const sRef = ref(rtdb, path);
-  await set(sRef, { value, unit, status, updatedAt: Date.now() });
+  const historyRef = push(ref(rtdb, farmPath(farmId, `history/sensors/${sensorKey}`)));
+  const timestamp = Date.now();
+  await set(historyRef, { value, unit, status, timestamp });
+  return historyRef.key;
 }
 
-// ─────────────────────────────────────────────────────────────
-//  FIRESTORE  (riwayat historis sensor)
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Simpan satu pembacaan sensor ke Firestore
- * Collection: sensor_readings
- */
-export async function saveSensorReading(sensorKey, value, unit, status) {
-  await addDoc(collection(db, "sensor_readings"), {
-    sensor: sensorKey,
-    value,
-    unit,
-    status,
-    timestamp: Timestamp.now(),
-  });
-}
-
-/**
- * Ambil riwayat sensor dalam rentang waktu
- * @param {string} sensorKey - 'temperature' | 'ph' | 'tds' | 'do' | 'turbidity'
- * @param {Date}   fromDate
- * @param {Date}   toDate
- * @param {number} maxDocs
- */
 export async function getSensorHistory(
   sensorKey,
   fromDate,
   toDate,
-  maxDocs = 500,
+  maxItems = 500,
+  farmId = null,
 ) {
-  const q = query(
-    collection(db, "sensor_readings"),
-    where("sensor", "==", sensorKey),
-    where("timestamp", ">=", Timestamp.fromDate(fromDate)),
-    where("timestamp", "<=", Timestamp.fromDate(toDate)),
-    orderBy("timestamp", "asc"),
-    limit(maxDocs),
+  const from = fromDate.getTime();
+  const to = toDate.getTime();
+  const historyQuery = query(
+    ref(rtdb, farmPath(farmId, `history/sensors/${sensorKey}`)),
+    orderByChild("timestamp"),
+    startAt(from),
+    endAt(to),
+    limitToLast(maxItems),
   );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-    timestamp: d.data().timestamp.toDate().toISOString(),
-  }));
+  const snap = await get(historyQuery);
+  return Object.entries(snap.val() || {})
+    .map(([id, value]) => ({
+      id,
+      sensor: sensorKey,
+      ...value,
+      timestamp: new Date(asMillis(value.timestamp)).toISOString(),
+    }))
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 }
 
-/**
- * Ambil semua sensor dalam rentang (untuk chart multi-sensor)
- */
-export async function getAllSensorsHistory(fromDate, toDate, maxDocs = 1000) {
-  const sensors = ["temperature", "ph", "tds", "do", "turbidity"];
-  const results = await Promise.all(
-    sensors.map((s) =>
-      getSensorHistory(s, fromDate, toDate, maxDocs / sensors.length),
+export async function getAllSensorsHistory(
+  fromDate,
+  toDate,
+  maxItems = 1000,
+  farmId = null,
+) {
+  const perSensor = Math.max(1, Math.floor(maxItems / SENSOR_KEYS.length));
+  const readings = await Promise.all(
+    SENSOR_KEYS.map((sensor) =>
+      getSensorHistory(sensor, fromDate, toDate, perSensor, farmId),
     ),
   );
-  // Gabungkan dan sort berdasarkan timestamp
-  const merged = results
-    .flat()
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  // Pivot ke format { timestamp, temperature, ph, tds, do, turbidity }
   const byTime = {};
-  merged.forEach((r) => {
-    if (!byTime[r.timestamp]) byTime[r.timestamp] = { timestamp: r.timestamp };
-    byTime[r.timestamp][r.sensor] = r.value;
+  readings.flat().forEach((reading) => {
+    if (!byTime[reading.timestamp]) byTime[reading.timestamp] = { timestamp: reading.timestamp };
+    byTime[reading.timestamp][reading.sensor] = reading.value;
   });
   return Object.values(byTime).sort(
     (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
   );
 }
 
-/**
- * Ambil ringkasan harian (rata-rata per hari)
- * Firestore tidak punya native GROUP BY, jadi kita agregasi di client
- */
-export async function getDailySummary(days = 30) {
+export async function getDailySummary(days = 30, farmId = null) {
   const from = new Date();
   from.setDate(from.getDate() - days);
   from.setHours(0, 0, 0, 0);
-
-  const q = query(
-    collection(db, "sensor_readings"),
-    where("timestamp", ">=", Timestamp.fromDate(from)),
-    orderBy("timestamp", "asc"),
-    limit(5000),
+  const readings = await Promise.all(
+    SENSOR_KEYS.map((sensor) => getSensorHistory(sensor, from, new Date(), 1000, farmId)),
   );
-  const snap = await getDocs(q);
-  const docs = snap.docs.map((d) => ({
-    ...d.data(),
-    timestamp: d.data().timestamp.toDate(),
-  }));
-
-  // Group by date + sensor
   const groups = {};
-  docs.forEach((d) => {
-    const dateKey = d.timestamp.toISOString().split("T")[0];
-    if (!groups[dateKey]) groups[dateKey] = {};
-    if (!groups[dateKey][d.sensor]) groups[dateKey][d.sensor] = [];
-    groups[dateKey][d.sensor].push(d.value);
+  readings.flat().forEach((reading) => {
+    const date = reading.timestamp.slice(0, 10);
+    if (!groups[date]) groups[date] = {};
+    if (!groups[date][reading.sensor]) groups[date][reading.sensor] = [];
+    groups[date][reading.sensor].push(Number(reading.value));
   });
-
-  const avg = (arr) =>
-    arr.length
-      ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2)
+  const average = (items = []) =>
+    items.length
+      ? +(items.reduce((sum, item) => sum + item, 0) / items.length).toFixed(2)
       : null;
-
   return Object.entries(groups)
-    .map(([date, sensors]) => ({
+    .map(([date, values]) => ({
       date,
-      temperature: avg(sensors.temperature || []),
-      ph: avg(sensors.ph || []),
-      tds: avg(sensors.tds || []),
-      do: avg(sensors.do || []),
-      turbidity: avg(sensors.turbidity || []),
+      ...Object.fromEntries(SENSOR_KEYS.map((sensor) => [sensor, average(values[sensor])])),
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/**
- * Ambil data per jam untuk satu hari tertentu
- */
-export async function getHourlyData(dateStr) {
-  const from = new Date(dateStr + "T00:00:00");
-  const to = new Date(dateStr + "T23:59:59");
-
-  const q = query(
-    collection(db, "sensor_readings"),
-    where("timestamp", ">=", Timestamp.fromDate(from)),
-    where("timestamp", "<=", Timestamp.fromDate(to)),
-    orderBy("timestamp", "asc"),
-    limit(2000),
+export async function getHourlyData(dateStr, farmId = null) {
+  const from = new Date(`${dateStr}T00:00:00`);
+  const to = new Date(`${dateStr}T23:59:59.999`);
+  const readings = await Promise.all(
+    SENSOR_KEYS.map((sensor) => getSensorHistory(sensor, from, to, 2000, farmId)),
   );
-  const snap = await getDocs(q);
-  const docs = snap.docs.map((d) => ({
-    ...d.data(),
-    timestamp: d.data().timestamp.toDate(),
-  }));
-
-  // Group by hour + sensor
   const groups = {};
-  docs.forEach((d) => {
-    const h = d.timestamp.getHours();
-    if (!groups[h]) groups[h] = {};
-    if (!groups[h][d.sensor]) groups[h][d.sensor] = [];
-    groups[h][d.sensor].push(d.value);
+  readings.flat().forEach((reading) => {
+    const hour = new Date(reading.timestamp).getHours();
+    if (!groups[hour]) groups[hour] = {};
+    if (!groups[hour][reading.sensor]) groups[hour][reading.sensor] = [];
+    groups[hour][reading.sensor].push(Number(reading.value));
   });
-
-  const avg = (arr) =>
-    arr.length
-      ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2)
+  const average = (items = []) =>
+    items.length
+      ? +(items.reduce((sum, item) => sum + item, 0) / items.length).toFixed(2)
       : null;
-
-  return Array.from({ length: 24 }, (_, h) => ({
-    hour: `${String(h).padStart(2, "0")}:00`,
-    temperature: avg((groups[h] || {}).temperature || []),
-    ph: avg((groups[h] || {}).ph || []),
-    tds: avg((groups[h] || {}).tds || []),
-    do: avg((groups[h] || {}).do || []),
-    turbidity: avg((groups[h] || {}).turbidity || []),
+  return Array.from({ length: 24 }, (_, hour) => ({
+    hour: `${String(hour).padStart(2, "0")}:00`,
+    ...Object.fromEntries(
+      SENSOR_KEYS.map((sensor) => [sensor, average(groups[hour]?.[sensor])]),
+    ),
   }));
 }
 
-// ─────────────────────────────────────────────────────────────
-//  LOG AKTUATOR (Firestore)
-// ─────────────────────────────────────────────────────────────
-
-export async function logActuatorAction(deviceId, action, source = "web") {
-  await addDoc(collection(db, "actuator_logs"), {
-    device: deviceId,
-    action,
-    source,
-    timestamp: Timestamp.now(),
-  });
+export async function logActuatorAction(deviceId, action, source = "web", farmId = null) {
+  const logRef = push(ref(rtdb, farmPath(farmId, "history/actuators")));
+  await set(logRef, { device: deviceId, action, source, timestamp: Date.now() });
+  return logRef.key;
 }
 
-export async function getActuatorLogs(limitN = 50) {
-  const q = query(
-    collection(db, "actuator_logs"),
-    orderBy("timestamp", "desc"),
-    limit(limitN),
+export async function getActuatorLogs(limitN = 50, farmId = null) {
+  const logsQuery = query(
+    ref(rtdb, farmPath(farmId, "history/actuators")),
+    orderByChild("timestamp"),
+    limitToLast(limitN),
   );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-    timestamp: d.data().timestamp.toDate().toISOString(),
-  }));
+  const snap = await get(logsQuery);
+  return Object.entries(snap.val() || {})
+    .map(([id, log]) => ({ ...log, id, timestamp: new Date(asMillis(log.timestamp)).toISOString() }))
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
-// ─────────────────────────────────────────────────────────────
-//  THRESHOLD SETTINGS (Firestore)
-// ─────────────────────────────────────────────────────────────
-
-export async function saveThresholds(thresholds) {
-  await setDoc(doc(db, "settings", "thresholds"), {
-    ...thresholds,
-    updatedAt: Timestamp.now(),
-  });
-}
-
-export async function loadThresholds() {
-  const snap = await getDoc(doc(db, "settings", "thresholds"));
-  if (snap.exists()) {
-    const data = snap.data();
-    delete data.updatedAt;
-    return data;
-  }
-  return null;
-}
-
+// Profil pengguna juga berada di RTDB; Firebase Authentication tetap dipakai untuk login.
 export async function getUserProfile(uid) {
-  const snap = await getDoc(doc(db, "users", uid));
-  if (snap.exists()) {
-    return { id: snap.id, ...snap.data() };
-  }
-  return null;
+  const snap = await get(ref(rtdb, `users/${uid}`));
+  return snap.exists() ? { id: uid, ...snap.val() } : null;
 }
 
 export async function createUserProfile(uid, email) {
-  const userRef = doc(db, "users", uid);
-  const existing = await getDoc(userRef);
-  if (existing.exists()) {
-    return { id: existing.id, ...existing.data() };
-  }
-
-  const defaultFarm = {
-    id: "default",
-    name: "Kolam Utama",
-    createdAt: Timestamp.now(),
-  };
-
-  const profile = {
-    email,
-    farms: [defaultFarm],
-    selectedFarm: defaultFarm.id,
-    createdAt: Timestamp.now(),
-  };
-
-  await setDoc(userRef, profile);
+  const existing = await getUserProfile(uid);
+  if (existing) return existing;
+  const defaultFarm = { id: "default", name: "Kolam Utama", createdAt: Date.now() };
+  const profile = { email, farms: [defaultFarm], selectedFarm: defaultFarm.id, createdAt: Date.now() };
+  await set(ref(rtdb, `users/${uid}`), profile);
   return { id: uid, ...profile };
 }
 
 export async function updateUserProfile(uid, updates) {
-  const userRef = doc(db, "users", uid);
-  await setDoc(userRef, updates, { merge: true });
+  await update(ref(rtdb, `users/${uid}`), updates);
 }

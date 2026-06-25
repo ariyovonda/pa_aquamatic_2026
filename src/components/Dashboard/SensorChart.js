@@ -24,11 +24,19 @@ function formatXAxis(ts, range) {
   return format(d, 'dd MMM', { locale: id });
 }
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, range }) => {
   if (!active || !payload || !payload.length) return null;
+  const time = new Date(label);
+  const title = range === '1H'
+    ? `Detail ${format(time, 'HH:mm')} (interval 2 menit)`
+    : range === '24H'
+      ? `Rata-rata ${format(time, 'HH:00')}–${format(time, 'HH:59')}`
+      : range === '7D' || range === '30D'
+        ? `Rata-rata harian ${format(time, 'dd MMM yyyy', { locale: id })}`
+      : time.toLocaleString('id-ID');
   return (
     <div className="chart-tooltip">
-      <div className="tooltip-time">{new Date(label).toLocaleString('id-ID')}</div>
+      <div className="tooltip-time">{title}</div>
       {payload.map(p => (
         <div key={p.dataKey} className="tooltip-row">
           <span className="tooltip-dot" style={{ background: p.color }} />
@@ -40,7 +48,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-export default function SensorChart({ data, activeTab, colors, meta, range }) {
+export default function SensorChart({ data, activeTab, colors, meta, range, rangeStart, rangeEnd }) {
   const visibleKeys = activeTab === 'all' ? SENSOR_KEYS : [activeTab];
 
   const formatted = useMemo(() =>
@@ -63,6 +71,8 @@ export default function SensorChart({ data, activeTab, colors, meta, range }) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
           <XAxis
             dataKey="ts"
+            type="number"
+            domain={rangeStart && rangeEnd ? [new Date(rangeStart).getTime(), new Date(rangeEnd).getTime()] : ['dataMin', 'dataMax']}
             tickFormatter={(v) => formatXAxis(v, range)}
             tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'DM Mono' }}
             axisLine={false}
@@ -76,7 +86,7 @@ export default function SensorChart({ data, activeTab, colors, meta, range }) {
             tickLine={false}
             width={40}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip range={range} />} />
           {activeTab === 'all' && (
             <Legend
               wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }}

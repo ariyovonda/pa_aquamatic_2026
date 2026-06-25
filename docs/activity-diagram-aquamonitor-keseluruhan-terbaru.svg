@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1350" viewBox="0 0 1900 1350">
+  <defs>
+    <style>
+      .title{font-family:Arial,Helvetica,sans-serif;font-size:34px;font-weight:700;fill:#0f172a}
+      .subtitle{font-family:Arial,Helvetica,sans-serif;font-size:20px;fill:#475569}
+      .laneTitle{font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;fill:#0f172a}
+      .label{font-family:Arial,Helvetica,sans-serif;font-size:17px;fill:#0f172a}
+      .small{font-family:Arial,Helvetica,sans-serif;font-size:14px;fill:#334155}
+      .lane{fill:#f8fafc;stroke:#cbd5e1;stroke-width:1.5}
+      .node{fill:#ffffff;stroke:#0f172a;stroke-width:2;rx:16;ry:16}
+      .user{fill:#ecfeff;stroke:#0891b2;stroke-width:2;rx:16;ry:16}
+      .cloud{fill:#fef3c7;stroke:#d97706;stroke-width:2;rx:16;ry:16}
+      .device{fill:#e0f2fe;stroke:#0284c7;stroke-width:2;rx:16;ry:16}
+      .safe{fill:#fee2e2;stroke:#dc2626;stroke-width:2;rx:16;ry:16}
+      .act{fill:#ede9fe;stroke:#7c3aed;stroke-width:2;rx:16;ry:16}
+      .decision{fill:#fce7f3;stroke:#be185d;stroke-width:2}
+      .startEnd{fill:#dcfce7;stroke:#16a34a;stroke-width:2.5}
+      .bar{fill:#0f172a}
+      .arrow{stroke:#0f172a;stroke-width:2.4;fill:none;marker-end:url(#arrow)}
+      .arrowData{stroke:#0284c7;stroke-width:2.4;fill:none;marker-end:url(#arrowData)}
+      .arrowCmd{stroke:#7c3aed;stroke-width:2.4;fill:none;marker-end:url(#arrowCmd)}
+      .note{fill:#ffffff;stroke:#94a3b8;stroke-width:1.5;rx:14;ry:14}
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a"/>
+    </marker>
+    <marker id="arrowData" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0284c7"/>
+    </marker>
+    <marker id="arrowCmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1900" height="1350" fill="#ffffff"/>
+  <text x="950" y="55" text-anchor="middle" class="title">Activity Diagram Keseluruhan Sistem AquaMonitor</text>
+  <text x="950" y="88" text-anchor="middle" class="subtitle">Interaksi pengguna, dashboard, Firebase, Node-RED, MQTT/ESP8266, Arduino, sensor, dan aktuator</text>
+
+  <rect x="40" y="125" width="240" height="1120" class="lane"/>
+  <rect x="280" y="125" width="260" height="1120" class="lane"/>
+  <rect x="540" y="125" width="260" height="1120" class="lane"/>
+  <rect x="800" y="125" width="280" height="1120" class="lane"/>
+  <rect x="1080" y="125" width="280" height="1120" class="lane"/>
+  <rect x="1360" y="125" width="250" height="1120" class="lane"/>
+  <rect x="1610" y="125" width="250" height="1120" class="lane"/>
+
+  <text x="160" y="155" text-anchor="middle" class="laneTitle">Pengguna</text>
+  <text x="410" y="155" text-anchor="middle" class="laneTitle">Dashboard</text>
+  <text x="670" y="155" text-anchor="middle" class="laneTitle">Firebase RTDB</text>
+  <text x="940" y="155" text-anchor="middle" class="laneTitle">Node-RED</text>
+  <text x="1220" y="155" text-anchor="middle" class="laneTitle">MQTT & ESP8266</text>
+  <text x="1485" y="155" text-anchor="middle" class="laneTitle">Arduino Uno</text>
+  <text x="1735" y="155" text-anchor="middle" class="laneTitle">Sensor & Aktuator</text>
+
+  <circle cx="1485" cy="215" r="28" class="startEnd"/>
+  <text x="1485" y="222" text-anchor="middle" class="label" font-weight="700">Start</text>
+
+  <rect x="1385" y="275" width="200" height="72" class="device"/>
+  <text x="1485" y="303" text-anchor="middle" class="label">Inisialisasi</text>
+  <text x="1485" y="327" text-anchor="middle" class="small">sensor, relay, serial</text>
+
+  <rect x="1635" y="385" width="200" height="82" class="act"/>
+  <text x="1735" y="413" text-anchor="middle" class="label">Sensor membaca</text>
+  <text x="1735" y="437" text-anchor="middle" class="small">suhu, pH, TDS, DO,</text>
+  <text x="1735" y="456" text-anchor="middle" class="small">turbidity</text>
+
+  <rect x="1385" y="385" width="200" height="82" class="device"/>
+  <text x="1485" y="413" text-anchor="middle" class="label">Arduino memproses</text>
+  <text x="1485" y="437" text-anchor="middle" class="small">filter pH/TDS dan</text>
+  <text x="1485" y="456" text-anchor="middle" class="small">membentuk frame</text>
+
+  <rect x="1110" y="385" width="220" height="82" class="device"/>
+  <text x="1220" y="413" text-anchor="middle" class="label">ESP publish sensor</text>
+  <text x="1220" y="437" text-anchor="middle" class="small">ke MQTT topic</text>
+  <text x="1220" y="456" text-anchor="middle" class="small">aquaponics/sensors/+</text>
+
+  <rect x="830" y="385" width="220" height="82" class="cloud"/>
+  <text x="940" y="413" text-anchor="middle" class="label">Node-RED validasi</text>
+  <text x="940" y="437" text-anchor="middle" class="small">live data, histori,</text>
+  <text x="940" y="456" text-anchor="middle" class="small">nilai untuk otomasi</text>
+
+  <rect x="570" y="385" width="200" height="82" class="cloud"/>
+  <text x="670" y="413" text-anchor="middle" class="label">Simpan data</text>
+  <text x="670" y="437" text-anchor="middle" class="small">/sensors</text>
+  <text x="670" y="456" text-anchor="middle" class="small">/history/sensors</text>
+
+  <rect x="310" y="385" width="200" height="82" class="user"/>
+  <text x="410" y="413" text-anchor="middle" class="label">Tampilkan data</text>
+  <text x="410" y="437" text-anchor="middle" class="small">real-time, grafik,</text>
+  <text x="410" y="456" text-anchor="middle" class="small">status sensor</text>
+
+  <rect x="60" y="525" width="200" height="82" class="user"/>
+  <text x="160" y="553" text-anchor="middle" class="label">User memantau</text>
+  <text x="160" y="577" text-anchor="middle" class="small">kondisi air dan</text>
+  <text x="160" y="596" text-anchor="middle" class="small">status sistem</text>
+
+  <polygon points="410,525 520,585 410,645 300,585" class="decision"/>
+  <text x="410" y="578" text-anchor="middle" class="label">Perlu ubah</text>
+  <text x="410" y="602" text-anchor="middle" class="label">threshold?</text>
+
+  <rect x="60" y="695" width="200" height="82" class="user"/>
+  <text x="160" y="723" text-anchor="middle" class="label">User mengatur</text>
+  <text x="160" y="747" text-anchor="middle" class="small">mode auto, sensor,</text>
+  <text x="160" y="766" text-anchor="middle" class="small">threshold, hysteresis</text>
+
+  <rect x="310" y="695" width="200" height="82" class="user"/>
+  <text x="410" y="723" text-anchor="middle" class="label">Dashboard simpan</text>
+  <text x="410" y="747" text-anchor="middle" class="small">konfigurasi aktuator</text>
+  <text x="410" y="766" text-anchor="middle" class="small">ke Firebase</text>
+
+  <rect x="570" y="695" width="200" height="82" class="cloud"/>
+  <text x="670" y="723" text-anchor="middle" class="label">RTDB update</text>
+  <text x="670" y="747" text-anchor="middle" class="small">/actuators/{id}</text>
+  <text x="670" y="766" text-anchor="middle" class="small">automation rule</text>
+
+  <rect x="830" y="695" width="220" height="82" class="cloud"/>
+  <text x="940" y="723" text-anchor="middle" class="label">Node-RED cache</text>
+  <text x="940" y="747" text-anchor="middle" class="small">enabled, mode, sensor,</text>
+  <text x="940" y="766" text-anchor="middle" class="small">threshold, hysteresis</text>
+
+  <polygon points="940,830 1060,900 940,970 820,900" class="decision"/>
+  <text x="940" y="890" text-anchor="middle" class="label">Nilai sensor</text>
+  <text x="940" y="914" text-anchor="middle" class="label">melewati threshold?</text>
+
+  <rect x="1110" y="860" width="220" height="82" class="device"/>
+  <text x="1220" y="888" text-anchor="middle" class="label">Command MQTT</text>
+  <text x="1220" y="912" text-anchor="middle" class="small">device + action</text>
+  <text x="1220" y="931" text-anchor="middle" class="small">ke ESP8266</text>
+
+  <rect x="1385" y="860" width="200" height="82" class="safe"/>
+  <text x="1485" y="888" text-anchor="middle" class="label">Arduino terima</text>
+  <text x="1485" y="912" text-anchor="middle" class="small">pending action +</text>
+  <text x="1485" y="931" text-anchor="middle" class="small">cek relay aktif</text>
+
+  <rect x="1635" y="860" width="200" height="82" class="act"/>
+  <text x="1735" y="888" text-anchor="middle" class="label">Aktuator bekerja</text>
+  <text x="1735" y="912" text-anchor="middle" class="small">pulse/cycle aman</text>
+  <text x="1735" y="931" text-anchor="middle" class="small">sesuai firmware</text>
+
+  <rect x="1385" y="1010" width="200" height="90" class="device"/>
+  <text x="1485" y="1038" text-anchor="middle" class="label">Kirim status relay</text>
+  <text x="1485" y="1062" text-anchor="middle" class="small">@waterPump,aerator,</text>
+  <text x="1485" y="1081" text-anchor="middle" class="small">heater,pump,buzzer</text>
+
+  <rect x="1110" y="1010" width="220" height="90" class="device"/>
+  <text x="1220" y="1038" text-anchor="middle" class="label">ESP publish status</text>
+  <text x="1220" y="1062" text-anchor="middle" class="small">aquaponics/actuators/</text>
+  <text x="1220" y="1081" text-anchor="middle" class="small">{device}/state</text>
+
+  <rect x="830" y="1010" width="220" height="90" class="cloud"/>
+  <text x="940" y="1038" text-anchor="middle" class="label">Node-RED simpan</text>
+  <text x="940" y="1062" text-anchor="middle" class="small">status aktual dan</text>
+  <text x="940" y="1081" text-anchor="middle" class="small">history actuators</text>
+
+  <rect x="570" y="1010" width="200" height="90" class="cloud"/>
+  <text x="670" y="1038" text-anchor="middle" class="label">Firebase update</text>
+  <text x="670" y="1062" text-anchor="middle" class="small">/actuators</text>
+  <text x="670" y="1081" text-anchor="middle" class="small">/history/actuators</text>
+
+  <rect x="310" y="1010" width="200" height="90" class="user"/>
+  <text x="410" y="1038" text-anchor="middle" class="label">Dashboard update</text>
+  <text x="410" y="1062" text-anchor="middle" class="small">running / idle,</text>
+  <text x="410" y="1081" text-anchor="middle" class="small">last active</text>
+
+  <circle cx="410" cy="1185" r="28" class="startEnd"/>
+  <circle cx="410" cy="1185" r="19" fill="#16a34a"/>
+  <text x="410" y="1230" text-anchor="middle" class="small">Siklus monitoring berulang selama sistem aktif</text>
+
+  <path d="M1485 243 V275" class="arrow"/>
+  <path d="M1585 426 H1635" class="arrowData"/>
+  <path d="M1635 426 H1585" class="arrowData"/>
+  <path d="M1385 426 H1330" class="arrowData"/>
+  <path d="M1110 426 H1050" class="arrowData"/>
+  <path d="M830 426 H770" class="arrowData"/>
+  <path d="M570 426 H510" class="arrowData"/>
+  <path d="M410 467 V525" class="arrowData"/>
+  <path d="M300 566 H260" class="arrow"/>
+  <path d="M410 645 V665 H160 V695" class="arrowCmd"/>
+  <text x="435" y="665" class="small">YA</text>
+  <path d="M260 736 H310" class="arrowCmd"/>
+  <path d="M510 736 H570" class="arrowCmd"/>
+  <path d="M770 736 H830" class="arrowCmd"/>
+  <path d="M940 777 V830" class="arrowCmd"/>
+  <path d="M1060 900 H1110" class="arrowCmd"/>
+  <text x="1075" y="885" class="small">YA</text>
+  <path d="M1330 901 H1385" class="arrowCmd"/>
+  <path d="M1585 901 H1635" class="arrowCmd"/>
+  <path d="M1735 942 V1055 H1585" class="arrow"/>
+  <path d="M1385 1055 H1330" class="arrowData"/>
+  <path d="M1110 1055 H1050" class="arrowData"/>
+  <path d="M830 1055 H770" class="arrowData"/>
+  <path d="M570 1055 H510" class="arrowData"/>
+  <path d="M410 1100 V1157" class="arrow"/>
+  <path d="M820 900 H790 V500 H410 V525" class="arrow"/>
+  <text x="790" y="884" class="small">TIDAK</text>
+
+  <rect x="110" y="1260" width="1680" height="60" class="note"/>
+  <text x="950" y="1285" text-anchor="middle" class="label" font-weight="700">Catatan:</text>
+  <text x="950" y="1310" text-anchor="middle" class="small">Activity diagram ini menunjukkan sistem terbaru: threshold user diproses Node-RED, command dikirim via MQTT, dan Arduino menjalankan aktuator dengan pengaman pulse/cycle.</text>
+</svg>

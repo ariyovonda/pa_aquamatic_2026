@@ -8,7 +8,8 @@ Sistem monitoring akuaponik berbasis IoT dengan React + Firebase.
 - **Grafik Historis**: Visualisasi data sensor dalam rentang waktu
 - **Kontrol Aktuator**: Kontrol pompa air, aerator, heater, dan buzzer
 - **Notifikasi Alert**: Notifikasi otomatis saat nilai sensor di luar ambang batas
-- **Pengaturan**: Konfigurasi ambang batas sensor (tersimpan di Firestore)
+- **Kontrol Sensor**: Sensor dapat dinyalakan atau dimatikan dari Dashboard
+- **Otomasi Aktuator**: Threshold per aktuator tersimpan di Realtime Database
 
 ## Prasyarat
 
@@ -78,9 +79,7 @@ src/
 ```
 ESP8266/ESP32 → MQTT Broker → Node-RED → Firebase RTDB
                                                ↓
-                                         React App (live)
-                                               ↓
-                                         Firestore (history)
+                                         React App + History
 ```
 
 ## Available Scripts
@@ -94,13 +93,12 @@ ESP8266/ESP32 → MQTT Broker → Node-RED → Firebase RTDB
 
 ## Konsep Penting
 
-### Thresholds (Ambang Batas)
-Ambang batas sensor menentukan kapan alert ditampilkan. Nilai default:
-- **Temperature**: 22°C - 32°C
-- **pH**: 6.0 - 8.5
-- **TDS**: 100 - 300 ppm
-- **DO**: 4 - 8 mg/L
-- **Turbidity**: 0 - 25 NTU
+### Threshold Otomasi Aktuator
+Setiap aktuator dapat memakai mode `auto` dan aturan `automation` sendiri:
+sensor sumber, kondisi `below`/`above`, nilai threshold, serta hysteresis.
+Aturan disimpan pada `/actuators/{actuatorId}/automation` di RTDB. Sensor tidak
+memiliki threshold global; status ON/OFF sensor disimpan pada
+`/sensors/{sensorId}/enabled`.
 
 ### Status Sensor
 - **normal**: Nilai dalam range aman

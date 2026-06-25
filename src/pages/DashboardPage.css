@@ -12,7 +12,9 @@
 }
 
 @media (max-width: 1100px) {
-  .sensor-grid { grid-template-columns: repeat(2, 1fr); }
+  .sensor-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .chart-section {
@@ -30,6 +32,12 @@
   margin-bottom: 16px;
 }
 
+.chart-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .chart-title {
   font-size: 16px;
   font-weight: 700;
@@ -45,6 +53,37 @@
   border-radius: 8px;
 }
 
+.data-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.data-source-badge.live {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+}
+
+.data-source-badge.mock {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.data-source-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot 2s infinite;
+}
+
 .range-tab {
   padding: 5px 12px;
   border-radius: 6px;
@@ -54,7 +93,9 @@
   transition: all 0.15s;
 }
 
-.range-tab:hover { color: var(--text-primary); }
+.range-tab:hover {
+  color: var(--text-primary);
+}
 
 .range-tab.active {
   background: var(--bg-card);
@@ -82,8 +123,12 @@
   margin-bottom: -1px;
 }
 
-.sensor-tab:hover { color: var(--text-primary); }
-.sensor-tab.active { font-weight: 600; }
+.sensor-tab:hover {
+  color: var(--text-primary);
+}
+.sensor-tab.active {
+  font-weight: 600;
+}
 
 .db-status-bar {
   display: flex;
@@ -142,5 +187,7 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

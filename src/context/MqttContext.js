@@ -6,7 +6,6 @@ import React, {
   useEffect,
 } from "react";
 import { useApp } from "./AppContext";
-import { writeSensorRTDB } from "../firebase/firebaseService";
 
 const MqttContext = createContext(null);
 
@@ -40,21 +39,9 @@ export function MqttProvider({ children }) {
         client.subscribe(`${topicPrefix}/sensors/#`, { qos: 0 });
       });
 
-      client.on("message", async (topic, payload) => {
-        try {
-          const data = JSON.parse(payload.toString());
-          const parts = topic.split("/");
-          const sensor = parts[parts.length - 1] || parts[2];
-          await writeSensorRTDB(
-            sensor,
-            data.value,
-            data.unit,
-            data.status || "normal",
-          );
-        } catch (e) {
-          // ignore parse errors
-        }
-      });
+      // Node-RED adalah satu-satunya penulis sensor dan history RTDB.
+      // Browser cukup berlangganan RTDB melalui AppContext agar tidak membuat
+      // duplikasi history atau interval sampling yang tidak konsisten.
 
       client.on("error", (err) => {
         console.warn("[MQTT] error", err && err.message);

@@ -77,25 +77,10 @@ const ICONS = {
   ),
 };
 
-export default function SensorCard({
-  sensorKey,
-  sensor,
-  meta,
-  enabled,
-  onToggle,
-}) {
+export default function SensorCard({ sensorKey, sensor, meta }) {
   const isOffline = sensor.status === "offline" || sensor.connected === false;
   const isWarning = sensor.status === "warning";
   const displayValue = isOffline ? "-" : sensor.value;
-  const pct = isOffline
-    ? 0
-    : Math.min(
-        100,
-        Math.max(
-          0,
-          ((sensor.value - sensor.min) / (sensor.max - sensor.min)) * 100,
-        ),
-      );
 
   // Dot and number colors: use gray for offline, red for warnings, otherwise sensor color
   const offlineColor = "#9CA3AF"; // gray
@@ -108,7 +93,7 @@ export default function SensorCard({
 
   return (
     <div
-      className={`sensor-card ${isWarning ? "warning" : ""} ${isOffline ? "offline" : ""} ${!enabled ? "disabled" : ""}`}
+      className={`sensor-card ${isWarning ? "warning" : ""} ${isOffline ? "offline" : ""}`}
     >
       <div className="sc-header">
         <div className="sc-icon" style={{ background: meta.bg }}>
@@ -118,83 +103,35 @@ export default function SensorCard({
           <span className="sc-title">{meta.fullLabel}</span>
           <div className="sc-status-dot-wrap">
             <span
-              className={`sc-dot ${isOffline ? "offline" : isWarning ? "warn" : "ok"} ${enabled ? "" : "off"}`}
+              className={`sc-dot ${isOffline ? "offline" : isWarning ? "warn" : "ok"}`}
               style={{ backgroundColor: dotColor }}
             />
           </div>
         </div>
-        <button
-          className={`sc-arrow ${!enabled ? "off" : ""}`}
-          onClick={onToggle}
-          title={enabled ? "Disable sensor" : "Enable sensor"}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {enabled ? (
-              <>
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </>
-            ) : (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            )}
-          </svg>
-        </button>
+        <span className={`sensor-live-badge ${isOffline ? "offline" : "on"}`}>
+          {isOffline ? "OFFLINE" : "LIVE"}
+        </span>
       </div>
 
-      {enabled ? (
-        <>
-          <div className="sc-value">
-            <span
-              className="sc-num"
-              style={{
-                color: isOffline
-                  ? offlineColor
-                  : isWarning
-                    ? warnColor
-                    : meta.color,
-              }}
-            >
-              {displayValue}
-            </span>
-            {!isOffline && <span className="sc-unit">{sensor.unit}</span>}
-          </div>
+      <div className="sc-value">
+        <span
+          className="sc-num"
+          style={{
+            color: isOffline
+              ? offlineColor
+              : isWarning
+                ? warnColor
+                : meta.color,
+          }}
+        >
+          {displayValue}
+        </span>
+        {!isOffline && <span className="sc-unit">{sensor.unit}</span>}
+      </div>
 
-          {!isOffline && (
-            <>
-              <div className="sc-bar-wrap">
-                <div className="sc-bar-track">
-                  <div
-                    className="sc-bar-fill"
-                    style={{
-                      width: `${pct}%`,
-                      background: isWarning ? "#ef4444" : meta.color,
-                    }}
-                  />
-                </div>
-                <div className="sc-bar-labels">
-                  <span>{sensor.min}</span>
-                  <span>{sensor.max}</span>
-                </div>
-              </div>
-              <div className="sc-desc">{meta.desc}</div>
-            </>
-          )}
-        </>
-      ) : (
-        <div className="sc-disabled-msg">
-          <span>Sensor disabled</span>
+      {!isOffline && (
+        <div className="sc-desc">
+          {meta.desc}
         </div>
       )}
     </div>

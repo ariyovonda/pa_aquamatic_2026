@@ -71,7 +71,7 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         <div className="firebase-badge">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="#f97316"><path d="M3.89 15.67L6.6 3.5l5.3 9.19-8.01 2.98zm16.22-.01l-2.71-12.17-5.3 9.19 8.01 2.98zM12 21.5l-8.11-5.83 8.11-3.01 8.11 3.01L12 21.5z" /></svg>
-          <span>Firebase Firestore + RTDB</span>
+          <span>Firebase Realtime DB</span>
         </div>
         <div className="system-info">
           <div className="info-row"><span className="info-label">Sensors</span><span className="info-val">5 Units</span></div>

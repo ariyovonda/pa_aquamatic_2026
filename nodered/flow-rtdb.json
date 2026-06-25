@@ -1,0 +1,387 @@
+[
+  {
+    "id": "tab_rtdb_sensor_v4",
+    "type": "tab",
+    "label": "AquaMonitor RTDB - Sensor",
+    "disabled": false,
+    "info": "MQTT sensor to RTDB live data, sampled history, and automatic actuator rules."
+  },
+  {
+    "id": "tab_rtdb_actuator_v4",
+    "type": "tab",
+    "label": "AquaMonitor RTDB - Actuator",
+    "disabled": false,
+    "info": "RTDB listeners cache sensor and actuator configuration. Commands are sent to Arduino and logged."
+  },
+  {
+    "id": "firebase_config_rtdb_v4",
+    "type": "firebase-config",
+    "name": "AquaMonitor RTDB",
+    "authType": "privateKey",
+    "claims": {},
+    "createUser": false,
+    "useClaims": false
+  },
+  {
+    "id": "mqtt_broker_rtdb_v4",
+    "type": "mqtt-broker",
+    "name": "Mosquitto Local",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "nodered-aquamonitor-rtdb",
+    "autoConnect": true,
+    "usetls": false,
+    "keepalive": "60",
+    "cleansession": true
+  },
+  {
+    "id": "serial_cfg_rtdb_v4",
+    "type": "serial-port",
+    "serialport": "COM3",
+    "serialbaud": "9600",
+    "databits": "8",
+    "parity": "none",
+    "stopbits": "1",
+    "newline": "\\n",
+    "bin": "false",
+    "out": "char",
+    "addchar": "\\n",
+    "responsetimeout": "10000"
+  },
+  {
+    "id": "comment_sensor_v4",
+    "type": "comment",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "ESP publishes { value } to aquaponics/sensors/<sensorId>",
+    "info": "Sensor threshold logic is deliberately absent. Thresholds belong to /actuators/<id>/automation.",
+    "x": 330,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "mqtt_sensor_wildcard_v4",
+    "type": "mqtt in",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "MQTT sensor readings",
+    "topic": "aquaponics/sensors/+",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt_broker_rtdb_v4",
+    "x": 140,
+    "y": 120,
+    "wires": [
+      [
+        "fn_prepare_sensor_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_prepare_sensor_v4",
+    "type": "function",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "Prepare live + history + automation",
+    "func": "var sensor = String(msg.topic || '').split('/').pop();\nvar units = { temperature: 'C', ph: 'pH', tds: 'ppm', do: 'mg/L', turbidity: 'NTU' };\nvar HISTORY_INTERVAL_MS = 2 * 60 * 1000;\nif (!Object.prototype.hasOwnProperty.call(units, sensor)) return null;\nvar sensorSettings = flow.get('sensors') || {};\nif (sensorSettings[sensor] && sensorSettings[sensor].enabled === false) return null;\nvar value = Number(msg.payload && msg.payload.value);\nif (!Number.isFinite(value)) return null;\nvar now = Date.now();\nvar decimals = sensor === 'tds' ? 1 : 2;\nvar reading = { value: Number(value.toFixed(decimals)), unit: msg.payload.unit || units[sensor], status: msg.payload.status || 'normal', updatedAt: now };\nvar live = { rtdbPath: 'sensors/' + sensor, payload: reading };\nvar history = null;\nif (now - (flow.get('lastHistory_' + sensor) || 0) >= HISTORY_INTERVAL_MS) {\n  flow.set('lastHistory_' + sensor, now);\n  history = { rtdbPath: 'history/sensors/' + sensor, payload: { value: reading.value, unit: reading.unit, status: reading.status, timestamp: now } };\n}\nreturn [[live], history ? [history] : [], [{ sensor: sensor, value: reading.value, timestamp: now }]];",
+    "outputs": 3,
+    "x": 410,
+    "y": 120,
+    "wires": [
+      [
+        "rtdb_update_live_v4"
+      ],
+      [
+        "rtdb_push_history_v4"
+      ],
+      [
+        "link_out_auto_v4"
+      ]
+    ]
+  },
+  {
+    "id": "rtdb_update_live_v4",
+    "type": "firebase-out",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "RTDB update live sensor",
+    "database": "firebase_config_rtdb_v4",
+    "path": "rtdbPath",
+    "pathType": "msg",
+    "priority": "1",
+    "queryType": "update",
+    "x": 680,
+    "y": 90,
+    "wires": []
+  },
+  {
+    "id": "rtdb_push_history_v4",
+    "type": "firebase-out",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "RTDB push sensor history",
+    "database": "firebase_config_rtdb_v4",
+    "path": "rtdbPath",
+    "pathType": "msg",
+    "priority": "1",
+    "queryType": "push",
+    "x": 690,
+    "y": 150,
+    "wires": []
+  },
+  {
+    "id": "link_out_auto_v4",
+    "type": "link out",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "Send sensor value to automation",
+    "mode": "link",
+    "links": [
+      "link_in_auto_v4"
+    ],
+    "x": 675,
+    "y": 210,
+    "wires": []
+  },
+  {
+    "id": "mqtt_actuator_state_v4",
+    "type": "mqtt in",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "MQTT actual actuator states",
+    "topic": "aquaponics/actuators/+/state",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt_broker_rtdb_v4",
+    "x": 160,
+    "y": 280,
+    "wires": [
+      [
+        "fn_actual_actuator_state_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_actual_actuator_state_v4",
+    "type": "function",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "Store actual actuator state",
+    "func": "var parts = String(msg.topic || '').split('/');\nvar id = parts[2];\nvar allowed = ['waterPump', 'aerator', 'heater', 'phPumpDown', 'phPumpUp', 'nutritionPump', 'buzzer'];\nif (allowed.indexOf(id) === -1 || !msg.payload || typeof msg.payload.running !== 'boolean') return null;\nreturn { rtdbPath: 'actuators/' + id, payload: { running: msg.payload.running, reportedAt: Date.now() } };",
+    "outputs": 1,
+    "x": 430,
+    "y": 280,
+    "wires": [
+      [
+        "rtdb_update_actual_actuator_v4"
+      ]
+    ]
+  },
+  {
+    "id": "rtdb_update_actual_actuator_v4",
+    "type": "firebase-out",
+    "z": "tab_rtdb_sensor_v4",
+    "name": "RTDB update actual actuator state",
+    "database": "firebase_config_rtdb_v4",
+    "path": "rtdbPath",
+    "pathType": "msg",
+    "priority": "1",
+    "queryType": "update",
+    "x": 720,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "rtdb_in_actuators_v4",
+    "type": "firebase-in",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Listen /actuators",
+    "database": "firebase_config_rtdb_v4",
+    "inputs": 0,
+    "listenerType": "value",
+    "outputType": "json",
+    "passThrough": false,
+    "path": "actuators",
+    "pathType": "str",
+    "useConstraints": false,
+    "x": 150,
+    "y": 80,
+    "wires": [
+      [
+        "fn_cache_rules_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_cache_rules_v4",
+    "type": "function",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Cache rules + web RPC + safety OFF",
+    "func": "if (!msg.payload || typeof msg.payload !== 'object') return null;\nvar previous = flow.get('actuators') || {};\nvar current = msg.payload;\nflow.set('actuators', current);\nvar commands = [];\nObject.keys(current).forEach(function (id) {\n  var actuator = current[id] || {};\n  var rpc = actuator.command;\n  var rpcKey = rpc && rpc.id ? String(rpc.id) : '';\n  var isValidRpc = rpc && ['on', 'off'].indexOf(rpc.action) !== -1 && rpcKey;\n  var lastRpcKey = flow.get('lastRpc_' + id) || '';\n  if (isValidRpc && rpcKey !== lastRpcKey) {\n    flow.set('lastRpc_' + id, rpcKey);\n    commands.push({ payload: { device: id, action: rpc.action, source: rpc.source || 'web', timestamp: rpc.requestedAt || Date.now() } });\n    return;\n  }\n  var wasEnabled = !previous[id] || previous[id].enabled !== false;\n  var isDisabled = actuator.enabled === false;\n  if (wasEnabled && isDisabled && !(isValidRpc && rpc.action === 'off')) {\n    commands.push({ payload: { device: id, action: 'off', source: 'rtdb-disable', timestamp: Date.now() } });\n  }\n});\nreturn [null, commands];",
+    "outputs": 2,
+    "x": 400,
+    "y": 80,
+    "wires": [
+      [],
+      [
+        "fn_command_to_mqtt_v4"
+      ]
+    ]
+  },
+  {
+    "id": "rtdb_in_sensors_v4",
+    "type": "firebase-in",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Listen /sensors ON-OFF",
+    "database": "firebase_config_rtdb_v4",
+    "inputs": 0,
+    "listenerType": "value",
+    "outputType": "json",
+    "passThrough": false,
+    "path": "sensors",
+    "pathType": "str",
+    "useConstraints": false,
+    "x": 160,
+    "y": 140,
+    "wires": [
+      [
+        "fn_cache_sensors_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_cache_sensors_v4",
+    "type": "function",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Cache sensor states",
+    "func": "if (msg.payload && typeof msg.payload === 'object') flow.set('sensors', msg.payload);\nreturn null;",
+    "outputs": 1,
+    "x": 410,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "link_in_auto_v4",
+    "type": "link in",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Sensor values for automation",
+    "links": [
+      "link_out_auto_v4"
+    ],
+    "x": 105,
+    "y": 220,
+    "wires": [
+      [
+        "fn_auto_rules_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_auto_rules_v4",
+    "type": "function",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Apply auto threshold + hysteresis",
+    "func": "var rules = flow.get('actuators') || {};\nvar commands = [];\nvar cooldowns = {\n  waterPump: 20000,\n  aerator: 20000,\n  heater: 20000,\n  buzzer: 5000,\n  phPumpDown: 30000,\n  phPumpUp: 30000,\n  nutritionPump: 30000\n};\nvar now = msg.timestamp || Date.now();\nObject.keys(rules).forEach(function (id) {\n  var actuator = rules[id] || {};\n  var rule = actuator.automation;\n  if (!actuator.enabled || actuator.mode !== 'auto' || !rule || rule.sensor !== msg.sensor) return;\n  var threshold = Number(rule.value);\n  if (!Number.isFinite(threshold)) return;\n  var h = Math.max(0, Number(rule.hysteresis) || 0);\n  var triggered = false;\n  if (rule.condition === 'below') triggered = msg.value <= threshold;\n  if (rule.condition === 'above') triggered = msg.value >= threshold;\n  if (!triggered) return;\n  var cooldown = cooldowns[id] || 10000;\n  var lastCommand = flow.get('lastAutoCommand_' + id) || 0;\n  if (now - lastCommand < cooldown) return;\n  flow.set('lastAutoCommand_' + id, now);\n  commands.push({ payload: { device: id, action: 'on', source: 'auto-threshold', timestamp: now } });\n});\nreturn [commands];",
+    "outputs": 1,
+    "x": 400,
+    "y": 220,
+    "wires": [
+      [
+        "fn_command_to_mqtt_v4"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_web_command_v4",
+    "type": "mqtt in",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Web actuator commands",
+    "topic": "aquaponics/actuators/+/command",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt_broker_rtdb_v4",
+    "x": 160,
+    "y": 310,
+    "wires": [
+      [
+        "fn_web_command_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_web_command_v4",
+    "type": "function",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "Log web command (do not republish)",
+    "func": "var device = String(msg.topic || '').split('/')[2];\nvar action = String((msg.payload && msg.payload.action) || '').toLowerCase();\nif (!device || ['on', 'off', 'enable', 'disable'].indexOf(action) === -1) return null;\nif (action === 'enable') action = 'on';\nif (action === 'disable') action = 'off';\nvar now = Date.now();\nreturn [[{ rtdbPath: 'actuators/' + device, payload: { running: action === 'on', status: action, lastRun: now, updatedAt: now } }], [{ rtdbPath: 'history/actuators', payload: { device: device, action: action, source: 'web', timestamp: now } }]];",
+    "outputs": 2,
+    "x": 400,
+    "y": 310,
+    "wires": [
+      [
+        "rtdb_update_actuator_v4"
+      ],
+      [
+        "rtdb_push_actuator_log_v4"
+      ]
+    ]
+  },
+  {
+    "id": "fn_command_to_mqtt_v4",
+    "type": "function",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "MQTT command + RTDB state + log",
+    "func": "var command = msg.payload || {};\nvar allowed = ['waterPump', 'aerator', 'heater', 'phPumpDown', 'phPumpUp', 'nutritionPump', 'buzzer'];\nif (allowed.indexOf(command.device) === -1) { node.warn('Unsupported actuator: ' + command.device); return null; }\nvar running = command.action === 'on';\nvar now = command.timestamp || Date.now();\nvar outbound = { topic: 'aquaponics/actuators/' + command.device + '/command', payload: JSON.stringify({ action: command.action }) };\nvar state = { rtdbPath: 'actuators/' + command.device, payload: { running: running, status: running ? 'on' : 'off', lastRun: now, updatedAt: now, command: null } };\nvar log = { rtdbPath: 'history/actuators', payload: { device: command.device, action: command.action, source: command.source || 'auto', timestamp: now } };\nreturn [[outbound], [state], [log]];",
+    "outputs": 3,
+    "x": 690,
+    "y": 270,
+    "wires": [
+      [
+        "mqtt_out_actuator_v4"
+      ],
+      [
+        "rtdb_update_actuator_v4"
+      ],
+      [
+        "rtdb_push_actuator_log_v4"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_out_actuator_v4",
+    "type": "mqtt out",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "MQTT automatic actuator command",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt_broker_rtdb_v4",
+    "x": 970,
+    "y": 230,
+    "wires": []
+  },
+  {
+    "id": "rtdb_update_actuator_v4",
+    "type": "firebase-out",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "RTDB update actuator state",
+    "database": "firebase_config_rtdb_v4",
+    "path": "rtdbPath",
+    "pathType": "msg",
+    "priority": "1",
+    "queryType": "update",
+    "x": 990,
+    "y": 270,
+    "wires": []
+  },
+  {
+    "id": "rtdb_push_actuator_log_v4",
+    "type": "firebase-out",
+    "z": "tab_rtdb_actuator_v4",
+    "name": "RTDB push actuator log",
+    "database": "firebase_config_rtdb_v4",
+    "path": "rtdbPath",
+    "pathType": "msg",
+    "priority": "1",
+    "queryType": "push",
+    "x": 980,
+    "y": 310,
+    "wires": []
+  }
+]

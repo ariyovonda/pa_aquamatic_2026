@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1850" viewBox="0 0 1600 1850">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 Z" fill="#1e293b"/></marker>
+    <style>
+      .title{font:700 29px Arial,sans-serif;fill:#0f172a}.sub{font:16px Arial,sans-serif;fill:#475569}.label{font:700 16px Arial,sans-serif;fill:#0f172a}.text{font:15px Arial,sans-serif;fill:#0f172a}.small{font:13px Arial,sans-serif;fill:#334155}.line{stroke:#1e293b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1600" height="1850" fill="#f8fafc"/>
+  <text x="800" y="48" class="title" text-anchor="middle">ACTIVITY DIAGRAM SISTEM MONITORING DAN KENDALI AKUAPONIK</text>
+  <text x="800" y="76" class="sub" text-anchor="middle">Alur pembacaan sensor, penyimpanan data, otomasi, dan kontrol manual aktuator</text>
+
+  <!-- start -->
+  <ellipse cx="800" cy="130" rx="72" ry="34" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="800" y="136" class="label" text-anchor="middle">Mulai</text>
+  <path d="M800 164 L800 208" class="line"/>
+
+  <rect x="610" y="210" width="380" height="72" rx="12" fill="#ccfbf1" stroke="#0f766e" stroke-width="2"/>
+  <text x="800" y="242" class="label" text-anchor="middle">Membaca data dari sensor</text>
+  <text x="800" y="266" class="small" text-anchor="middle">Suhu, pH, TDS, turbidity, dan dissolved oxygen</text>
+  <path d="M800 282 L800 326" class="line"/>
+
+  <rect x="610" y="328" width="380" height="72" rx="12" fill="#dbeafe" stroke="#0369a1" stroke-width="2"/>
+  <text x="800" y="360" class="label" text-anchor="middle">Memfilter dan memvalidasi data</text>
+  <text x="800" y="384" class="small" text-anchor="middle">Penyaringan pH dan TDS; pengecekan data tidak valid</text>
+  <path d="M800 400 L800 444" class="line"/>
+
+  <polygon points="800,444 960,530 800,616 640,530" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="800" y="524" class="label" text-anchor="middle">Data sensor valid?</text>
+
+  <!-- Invalid -->
+  <path d="M640 530 L410 530" class="line"/>
+  <text x="535" y="516" class="small">Tidak</text>
+  <rect x="115" y="490" width="290" height="80" rx="12" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="260" y="524" class="label" text-anchor="middle">Menampilkan status sensor</text>
+  <text x="260" y="548" class="small" text-anchor="middle">offline atau data tidak valid</text>
+  <path d="M260 570 L260 700 L470 700 L470 210" class="line"/>
+  <text x="278" y="686" class="small">Baca ulang sensor</text>
+
+  <!-- valid -->
+  <path d="M800 616 L800 660" class="line"/>
+  <text x="817" y="645" class="small">Ya</text>
+  <rect x="610" y="662" width="380" height="70" rx="12" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="800" y="692" class="label" text-anchor="middle">Menyimpan data terbaru ke Firebase</text>
+  <text x="800" y="715" class="small" text-anchor="middle">Path: /sensors</text>
+  <path d="M800 732 L800 776" class="line"/>
+
+  <polygon points="800,776 960,860 800,944 640,860" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="800" y="854" class="label" text-anchor="middle">Sudah mencapai interval</text>
+  <text x="800" y="876" class="small" text-anchor="middle">penyimpanan histori 2 menit?</text>
+
+  <path d="M800 944 L800 988" class="line"/>
+  <text x="818" y="973" class="small">Ya</text>
+  <rect x="610" y="990" width="380" height="70" rx="12" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="800" y="1020" class="label" text-anchor="middle">Menyimpan histori sensor</text>
+  <text x="800" y="1044" class="small" text-anchor="middle">Path: /history/sensors</text>
+  <path d="M800 1060 L800 1104" class="line"/>
+
+  <!-- no history joins dashboard -->
+  <path d="M960 860 L1160 860 L1160 1104 L990 1104" class="line"/>
+  <text x="1032" y="846" class="small">Tidak</text>
+
+  <rect x="610" y="1106" width="380" height="72" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+  <text x="800" y="1137" class="label" text-anchor="middle">Menampilkan data pada dashboard</text>
+  <text x="800" y="1161" class="small" text-anchor="middle">Nilai sensor, grafik histori, dan status perangkat</text>
+  <path d="M800 1178 L800 1222" class="line"/>
+
+  <polygon points="800,1222 970,1310 800,1398 630,1310" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="800" y="1304" class="label" text-anchor="middle">Apakah nilai sensor melewati</text>
+  <text x="800" y="1326" class="label" text-anchor="middle">threshold aturan otomatisasi?</text>
+
+  <!-- normal -->
+  <path d="M630 1310 L390 1310" class="line"/>
+  <text x="523" y="1295" class="small">Tidak</text>
+  <rect x="100" y="1268" width="285" height="84" rx="12" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="242" y="1302" class="label" text-anchor="middle">Menampilkan status normal</text>
+  <text x="242" y="1328" class="small" text-anchor="middle">Tidak ada perintah otomasi</text>
+  <path d="M242 1352 L242 1780 L525 1780 L525 210" class="line"/>
+  <text x="260" y="1764" class="small">Lanjut pemantauan</text>
+
+  <!-- automatic -->
+  <path d="M800 1398 L800 1442" class="line"/>
+  <text x="818" y="1428" class="small">Ya</text>
+  <rect x="610" y="1444" width="380" height="76" rx="12" fill="#f3e8ff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="800" y="1476" class="label" text-anchor="middle">Node-RED menjalankan otomasi</text>
+  <text x="800" y="1500" class="small" text-anchor="middle">Memeriksa mode auto, threshold, dan hysteresis</text>
+  <path d="M800 1520 L800 1564" class="line"/>
+
+  <rect x="610" y="1566" width="380" height="76" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="800" y="1598" class="label" text-anchor="middle">Mengirim perintah ke aktuator</text>
+  <text x="800" y="1622" class="small" text-anchor="middle">Node-RED → MQTT → ESP8266 → Arduino → Relay</text>
+
+  <!-- manual alternate -->
+  <path d="M990 1142 L1280 1142 L1280 1510 L990 1510" class="line"/>
+  <rect x="1050" y="1370" width="400" height="98" rx="12" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="1250" y="1402" class="label" text-anchor="middle">Kontrol manual oleh pengguna</text>
+  <text x="1250" y="1428" class="small" text-anchor="middle">Pengguna menekan tombol ON/OFF pada dashboard</text>
+  <text x="1250" y="1450" class="small" text-anchor="middle">React → Firebase → Node-RED → MQTT → Arduino</text>
+
+  <!-- join -->
+  <rect x="610" y="1668" width="380" height="74" rx="12" fill="#ffe4e6" stroke="#be123c" stroke-width="2"/>
+  <text x="800" y="1699" class="label" text-anchor="middle">Relay mengubah kondisi aktuator</text>
+  <text x="800" y="1724" class="small" text-anchor="middle">Status aktual dikirim kembali ke Firebase dan dashboard</text>
+  <path d="M800 1642 L800 1668" class="line"/>
+  <path d="M1280 1510 L1280 1705 L990 1705" class="line"/>
+  <path d="M800 1742 L800 1800 L525 1800 L525 210" class="line"/>
+  <text x="540" y="1790" class="small">Siklus monitoring berulang</text>
+</svg>

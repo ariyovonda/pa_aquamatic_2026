@@ -8,10 +8,9 @@ import React, {
 import {
   subscribeSensors,
   subscribeActuators,
+  updateSensorRTDB,
   updateActuatorRTDB,
-  logActuatorAction,
-  saveThresholds,
-  loadThresholds,
+  requestActuatorCommand,
   getUserProfile,
   createUserProfile,
   updateUserProfile,
@@ -23,43 +22,38 @@ const AppContext = createContext(null);
 const SENSOR_DEFAULTS = {
   temperature: {
     unit: "°C",
-    min: 20,
-    max: 30,
     label: "Water Temperature",
     value: 25.7,
     status: "normal",
+    enabled: true,
   },
   ph: {
     unit: "pH",
-    min: 5.5,
-    max: 8.0,
     label: "pH Level",
     value: 6.8,
     status: "normal",
+    enabled: true,
   },
   tds: {
     unit: "ppm",
-    min: 400,
-    max: 800,
     label: "TDS Level",
     value: 628,
     status: "normal",
+    enabled: true,
   },
   do: {
     unit: "mg/L",
-    min: 4,
-    max: 10,
     label: "Dissolved Oxygen",
     value: 7.1,
     status: "normal",
+    enabled: true,
   },
   turbidity: {
     unit: "NTU",
-    min: 0.5,
-    max: 5,
     label: "Turbidity",
     value: 2.3,
     status: "normal",
+    enabled: true,
   },
 };
 
@@ -68,49 +62,53 @@ const ACTUATOR_DEFAULTS = {
     id: "waterPump",
     label: "Water Pump (Pond → Beds)",
     enabled: true,
-    running: true,
-    mode: "continuous",
-    intervalMinutes: 30,
-    durationMinutes: 10,
+    mode: "manual",
   },
   aerator: {
     id: "aerator",
     label: "Aerator (Pond Oxygen)",
     enabled: true,
-    running: true,
-    mode: "interval",
-    intervalMinutes: 60,
-    durationMinutes: 15,
+    mode: "manual",
   },
   heater: {
     id: "heater",
     label: "Heater (Water Heater)",
     enabled: true,
-    running: false,
     mode: "auto",
-    intervalMinutes: 0,
-    durationMinutes: 0,
+    automation: { sensor: "temperature", condition: "below", value: 25, hysteresis: 0 },
   },
   buzzer: {
     id: "buzzer",
     label: "Buzzer (Alarm)",
     enabled: true,
-    running: false,
     mode: "auto",
-    intervalMinutes: 0,
-    durationMinutes: 0,
+    automation: { sensor: "tds", condition: "above", value: 500, hysteresis: 0 },
+  },
+  phPumpDown: {
+    id: "phPumpDown",
+    label: "pH Pump (-)",
+    enabled: true,
+    mode: "auto",
+    automation: { sensor: "ph", condition: "above", value: 8, hysteresis: 0 },
+  },
+  phPumpUp: {
+    id: "phPumpUp",
+    label: "pH Pump (+)",
+    enabled: true,
+    mode: "auto",
+    automation: { sensor: "ph", condition: "below", value: 6, hysteresis: 0 },
+  },
+  nutritionPump: {
+    id: "nutritionPump",
+    label: "Nutrition Pump",
+    enabled: true,
+    mode: "auto",
+    automation: { sensor: "tds", condition: "below", value: 200, hysteresis: 0 },
   },
 };
 
 export function AppProvider({ children }) {
   const [sensorData, setSensorData] = useState(SENSOR_DEFAULTS);
-  const [sensorEnabled, setSensorEnabled] = useState({
-    temperature: true,
-    ph: true,
-    tds: true,
-    do: true,
-    turbidity: true,
-  });
   const [sensorHealth, setSensorHealth] = useState({
     temperature: false,
     ph: false,
@@ -120,13 +118,6 @@ export function AppProvider({ children }) {
   });
   const [dataReady, setDataReady] = useState(false);
   const [actuators, setActuators] = useState(ACTUATOR_DEFAULTS);
-  const [thresholds, setThresholdsState] = useState({
-    temperature: { min: 20, max: 30 },
-    ph: { min: 5.5, max: 8.0 },
-    tds: { min: 400, max: 800 },
-    do: { min: 4, max: 10 },
-    turbidity: { min: 0.5, max: 5 },
-  });
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -142,15 +133,6 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [selectedFarmId, setSelectedFarmId] = useState(null);
-
-  // 1. Load thresholds dari Firestore saat startup
-  useEffect(() => {
-    loadThresholds()
-      .then((saved) => {
-        if (saved) setThresholdsState(saved);
-      })
-      .catch(() => {});
-  }, []);
 
   // 2. Subscribe Realtime Database → sensor live
   useEffect(() => {
@@ -171,6 +153,7 @@ export function AppProvider({ children }) {
               value: fbVal?.value ?? null,
               unit: fbVal?.unit ?? base.unit,
               status: connected ? fbVal?.status || "normal" : "offline",
+              enabled: fbVal?.enabled ?? prev[key]?.enabled ?? true,
               connected,
               lastSeen,
             };
@@ -227,7 +210,13 @@ export function AppProvider({ children }) {
         setActuators((prev) => {
           const next = { ...prev };
           Object.entries(data).forEach(([id, val]) => {
-            if (next[id]) next[id] = { ...next[id], ...val };
+            next[id] = {
+              id,
+              label: prev[id]?.label || id,
+              enabled: prev[id]?.enabled ?? false,
+              ...prev[id],
+              ...val,
+            };
           });
           return next;
         });
@@ -325,8 +314,19 @@ export function AppProvider({ children }) {
   );
 
   const toggleSensor = useCallback(
-    (key) => setSensorEnabled((prev) => ({ ...prev, [key]: !prev[key] })),
-    [],
+    async (key) => {
+      const enabled = !(sensorData[key]?.enabled ?? true);
+      setSensorData((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], enabled },
+      }));
+      try {
+        await updateSensorRTDB(key, { enabled }, selectedFarmId);
+      } catch (error) {
+        console.warn("[Sensor] gagal mengubah status sensor", error);
+      }
+    },
+    [sensorData, selectedFarmId],
   );
 
   const toggleActuator = useCallback(
@@ -337,35 +337,39 @@ export function AppProvider({ children }) {
         [id]: {
           ...prev[id],
           enabled: newEnabled,
-          running: newEnabled ? prev[id].running : false,
         },
       }));
       try {
-        await updateActuatorRTDB(id, { enabled: newEnabled }, selectedFarmId);
-        await logActuatorAction(id, newEnabled ? "enable" : "disable");
-      } catch (e) {}
+        await requestActuatorCommand(
+          id,
+          newEnabled ? "on" : "off",
+          selectedFarmId,
+        );
+      } catch (error) {
+        setActuators((prev) => ({
+          ...prev,
+          [id]: { ...prev[id], enabled: !newEnabled },
+        }));
+        console.warn("[Actuator] RPC web gagal dikirim", error);
+      }
     },
     [actuators, selectedFarmId],
   );
 
-  const updateActuator = useCallback(
+  const updateActuatorAutomation = useCallback(
     async (id, changes) => {
-      setActuators((prev) => ({ ...prev, [id]: { ...prev[id], ...changes } }));
+      setActuators((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], ...changes },
+      }));
       try {
         await updateActuatorRTDB(id, changes, selectedFarmId);
-        if (changes.running !== undefined)
-          await logActuatorAction(id, changes.running ? "on" : "off");
-      } catch (e) {}
+      } catch (error) {
+        console.warn("[Actuator] gagal menyimpan aturan otomatis", error);
+      }
     },
     [selectedFarmId],
   );
-
-  const setThresholds = useCallback(async (newThresh) => {
-    setThresholdsState(newThresh);
-    try {
-      await saveThresholds(newThresh);
-    } catch (e) {}
-  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -373,13 +377,10 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         sensorData,
-        sensorEnabled,
         toggleSensor,
         actuators,
         toggleActuator,
-        updateActuator,
-        thresholds,
-        setThresholds,
+        updateActuatorAutomation,
         notifications,
         addNotification,
         markAllRead,

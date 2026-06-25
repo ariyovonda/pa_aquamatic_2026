@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1320" viewBox="0 0 1800 1320">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#334155"/>
+    </marker>
+    <style>
+      .title{font:700 30px Arial,sans-serif;fill:#0f172a}.subtitle{font:16px Arial,sans-serif;fill:#475569}.section{font:700 18px Arial,sans-serif;fill:#fff}.boxTitle{font:700 16px Arial,sans-serif;fill:#0f172a}.text{font:14px Arial,sans-serif;fill:#1e293b}.small{font:12px Arial,sans-serif;fill:#334155}.note{font:13px Arial,sans-serif;fill:#713f12}.line{stroke:#334155;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2;stroke-dasharray:7 5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1800" height="1320" fill="#f8fafc"/>
+  <text x="900" y="52" class="title" text-anchor="middle">FLOWCHART SISTEM MONITORING DAN KENDALI AKUAPONIK BERBASIS IoT</text>
+  <text x="900" y="80" class="subtitle" text-anchor="middle">Alur pembacaan sensor, komunikasi data, kontrol manual, otomasi, umpan balik status relay, dan pengamanan aktuator</text>
+
+  <!-- Section headers -->
+  <rect x="45" y="115" width="295" height="38" rx="8" fill="#0f766e"/><text x="192" y="140" class="section" text-anchor="middle">1. PERANGKAT INPUT</text>
+  <rect x="395" y="115" width="295" height="38" rx="8" fill="#0369a1"/><text x="542" y="140" class="section" text-anchor="middle">2. PEMROSESAN PERANGKAT</text>
+  <rect x="745" y="115" width="295" height="38" rx="8" fill="#7c3aed"/><text x="892" y="140" class="section" text-anchor="middle">3. KOMUNIKASI DAN CLOUD</text>
+  <rect x="1095" y="115" width="295" height="38" rx="8" fill="#c2410c"/><text x="1242" y="140" class="section" text-anchor="middle">4. ANTARMUKA PENGGUNA</text>
+  <rect x="1445" y="115" width="310" height="38" rx="8" fill="#be123c"/><text x="1600" y="140" class="section" text-anchor="middle">5. PERANGKAT OUTPUT</text>
+
+  <!-- Input sensors -->
+  <rect x="45" y="185" width="295" height="270" rx="14" fill="#ccfbf1" stroke="#0f766e" stroke-width="2"/>
+  <text x="192" y="215" class="boxTitle" text-anchor="middle">Sensor Kualitas Air</text>
+  <text x="72" y="250" class="text">• DS18B20: suhu air</text>
+  <text x="72" y="282" class="text">• Sensor pH: keasaman air</text>
+  <text x="72" y="314" class="text">• Sensor TDS: nutrisi terlarut</text>
+  <text x="72" y="346" class="text">• Sensor turbidity: kekeruhan</text>
+  <text x="72" y="378" class="text">• Sensor DO: oksigen terlarut</text>
+  <text x="72" y="422" class="small">Keluaran: sinyal analog/digital</text>
+
+  <!-- Arduino -->
+  <rect x="395" y="185" width="295" height="270" rx="14" fill="#dbeafe" stroke="#0369a1" stroke-width="2"/>
+  <text x="542" y="215" class="boxTitle" text-anchor="middle">Arduino</text>
+  <text x="422" y="250" class="text">1. Membaca semua sensor</text>
+  <text x="422" y="282" class="text">2. Memfilter data pH dan TDS</text>
+  <text x="422" y="314" class="text">3. Menghitung pH, TDS, NTU, DO</text>
+  <text x="422" y="346" class="text">4. Menjalankan relay aktuator</text>
+  <text x="422" y="378" class="text">5. Mengirim status relay aktual</text>
+  <text x="422" y="422" class="small">Serial: Arduino ↔ ESP8266</text>
+
+  <!-- ESP -->
+  <rect x="745" y="185" width="295" height="270" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="892" y="215" class="boxTitle" text-anchor="middle">ESP8266 sebagai Bridge</text>
+  <text x="772" y="250" class="text">1. Terhubung ke Wi-Fi</text>
+  <text x="772" y="282" class="text">2. Menerima data dari Arduino</text>
+  <text x="772" y="314" class="text">3. Mengirim data ke MQTT</text>
+  <text x="772" y="346" class="text">4. Menerima perintah MQTT</text>
+  <text x="772" y="378" class="text">5. Mengirim perintah ke Arduino</text>
+  <text x="772" y="422" class="small">Format data: JSON dan serial</text>
+
+  <!-- Node and Firebase -->
+  <rect x="745" y="510" width="295" height="255" rx="14" fill="#f3e8ff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="892" y="540" class="boxTitle" text-anchor="middle">MQTT dan Node-RED</text>
+  <text x="772" y="575" class="text">• Menerima data sensor MQTT</text>
+  <text x="772" y="607" class="text">• Menyimpan data terbaru</text>
+  <text x="772" y="639" class="text">• Menyimpan histori tiap 2 menit</text>
+  <text x="772" y="671" class="text">• Menjalankan aturan otomasi</text>
+  <text x="772" y="703" class="text">• Mengirim perintah ke MQTT</text>
+  <text x="772" y="736" class="small">MQTT = media komunikasi pesan</text>
+
+  <rect x="1095" y="510" width="295" height="255" rx="14" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="1242" y="540" class="boxTitle" text-anchor="middle">Firebase Realtime Database</text>
+  <text x="1122" y="575" class="text">/sensors: data sensor terbaru</text>
+  <text x="1122" y="607" class="text">/history/sensors: histori grafik</text>
+  <text x="1122" y="639" class="text">/actuators: konfigurasi/status</text>
+  <text x="1122" y="671" class="text">/history/actuators: log aksi</text>
+  <text x="1122" y="703" class="text">/users: profil pengguna</text>
+  <text x="1122" y="736" class="small">Penyimpanan dan sinkronisasi real-time</text>
+
+  <!-- React -->
+  <rect x="1095" y="185" width="295" height="270" rx="14" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="1242" y="215" class="boxTitle" text-anchor="middle">Aplikasi Web React</text>
+  <text x="1122" y="250" class="text">• Login pengguna</text>
+  <text x="1122" y="282" class="text">• Dashboard sensor real-time</text>
+  <text x="1122" y="314" class="text">• Grafik histori sensor</text>
+  <text x="1122" y="346" class="text">• Kontrol aktuator manual</text>
+  <text x="1122" y="378" class="text">• Atur threshold dan hysteresis</text>
+  <text x="1122" y="422" class="small">Membaca/menulis Firebase RTDB</text>
+
+  <!-- relay and actuators -->
+  <rect x="1445" y="185" width="310" height="120" rx="14" fill="#ffe4e6" stroke="#be123c" stroke-width="2"/>
+  <text x="1600" y="218" class="boxTitle" text-anchor="middle">Modul Relay</text>
+  <text x="1472" y="251" class="text">Mengubah sinyal Arduino menjadi</text>
+  <text x="1472" y="275" class="text">kontrol ON/OFF perangkat listrik</text>
+
+  <rect x="1445" y="335" width="310" height="350" rx="14" fill="#ffe4e6" stroke="#be123c" stroke-width="2"/>
+  <text x="1600" y="366" class="boxTitle" text-anchor="middle">Aktuator Akuaponik</text>
+  <text x="1472" y="405" class="text">• Pompa air</text>
+  <text x="1472" y="439" class="text">• Aerator</text>
+  <text x="1472" y="473" class="text">• Heater</text>
+  <text x="1472" y="507" class="text">• Pompa pH asam</text>
+  <text x="1472" y="541" class="text">• Pompa pH basa</text>
+  <text x="1472" y="575" class="text">• Pompa nutrisi</text>
+  <text x="1472" y="609" class="text">• Buzzer peringatan</text>
+  <text x="1472" y="654" class="small">Keluaran: tindakan fisik pada sistem</text>
+
+  <!-- Main sensing arrows -->
+  <path d="M340 320 L395 320" class="line"/>
+  <text x="367" y="306" class="small" text-anchor="middle">data sensor</text>
+  <path d="M690 320 L745 320" class="line"/>
+  <text x="717" y="306" class="small" text-anchor="middle">serial</text>
+  <path d="M892 455 L892 510" class="line"/>
+  <text x="910" y="488" class="small">Wi-Fi + MQTT</text>
+  <path d="M1040 638 L1095 638" class="line"/>
+  <text x="1067" y="624" class="small" text-anchor="middle">data RTDB</text>
+  <path d="M1242 510 L1242 455" class="line"/>
+  <text x="1260" y="488" class="small">data real-time</text>
+  <path d="M690 380 C1050 380,1210 860,1445 860" class="dash"/>
+
+  <!-- manual control loop -->
+  <rect x="45" y="825" width="1710" height="40" rx="8" fill="#334155"/>
+  <text x="900" y="851" class="section" text-anchor="middle">ALUR KONTROL MANUAL DAN OTOMATISASI AKTUATOR</text>
+
+  <rect x="60" y="900" width="245" height="165" rx="12" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="182" y="932" class="boxTitle" text-anchor="middle">A. Kontrol Manual</text>
+  <text x="82" y="967" class="text">Pengguna menekan tombol</text>
+  <text x="82" y="991" class="text">ON/OFF aktuator pada React</text>
+  <text x="82" y="1027" class="small">Contoh: heater dinyalakan</text>
+
+  <rect x="370" y="900" width="245" height="165" rx="12" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="492" y="932" class="boxTitle" text-anchor="middle">B. Perintah di Firebase</text>
+  <text x="392" y="967" class="text">React menulis command pada</text>
+  <text x="392" y="991" class="text">/actuators/{id}/command</text>
+  <text x="392" y="1027" class="small">Sumber perintah: web</text>
+
+  <rect x="680" y="900" width="245" height="165" rx="12" fill="#f3e8ff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="802" y="932" class="boxTitle" text-anchor="middle">C. Node-RED</text>
+  <text x="702" y="967" class="text">Membaca command, mencatat</text>
+  <text x="702" y="991" class="text">log, lalu mengirim MQTT</text>
+  <text x="702" y="1027" class="small">Topik: actuators/{id}/command</text>
+
+  <rect x="990" y="900" width="245" height="165" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="1112" y="932" class="boxTitle" text-anchor="middle">D. ESP8266 dan Arduino</text>
+  <text x="1012" y="967" class="text">ESP menerima MQTT dan</text>
+  <text x="1012" y="991" class="text">mengirim JSON ke Arduino</text>
+  <text x="1012" y="1027" class="small">Arduino mengubah status relay</text>
+
+  <rect x="1300" y="900" width="435" height="165" rx="12" fill="#ffe4e6" stroke="#be123c" stroke-width="2"/>
+  <text x="1517" y="932" class="boxTitle" text-anchor="middle">E. Relay dan Aktuator Bekerja</text>
+  <text x="1322" y="967" class="text">Relay menjalankan perangkat fisik sesuai perintah.</text>
+  <text x="1322" y="991" class="text">Arduino mengirim status aktual kembali ke ESP8266.</text>
+  <text x="1322" y="1027" class="small">Umpan balik status: Arduino → ESP → MQTT → Node-RED → Firebase → React</text>
+
+  <path d="M305 982 L370 982" class="line"/><path d="M615 982 L680 982" class="line"/><path d="M925 982 L990 982" class="line"/><path d="M1235 982 L1300 982" class="line"/>
+
+  <!-- automatic control -->
+  <rect x="60" y="1110" width="1675" height="150" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="85" y="1140" class="boxTitle">Aturan Otomatisasi dan Pengamanan</text>
+  <text x="85" y="1172" class="note">1. Heater aktif saat suhu berada di bawah threshold; heater mati setelah suhu mencapai threshold + hysteresis.</text>
+  <text x="85" y="1198" class="note">2. Pompa pH asam aktif saat pH terlalu tinggi; pompa pH basa aktif saat pH terlalu rendah; pompa nutrisi aktif saat TDS rendah.</text>
+  <text x="85" y="1224" class="note">3. Buzzer aktif saat TDS atau turbidity melampaui batas yang ditentukan pengguna.</text>
+  <text x="85" y="1250" class="note">4. Pengaman: pompa dosing maksimal aktif 2 detik dengan jeda 30 detik; pompa air berulang aktif 2 detik lalu berhenti 20 detik.</text>
+
+  <!-- legend -->
+  <text x="55" y="1294" class="small">Keterangan: panah utuh = aliran data/perintah utama; panah putus-putus = hubungan umpan balik dan status aktual perangkat.</text>
+</svg>

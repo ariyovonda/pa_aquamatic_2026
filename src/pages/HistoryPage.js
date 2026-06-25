@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { subHours, subDays, format } from 'date-fns';
+import { subHours, subDays, startOfDay, endOfDay, format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -10,7 +10,8 @@ import {
   getHourlyData,
   getAllSensorsHistory,
 } from '../firebase/firebaseService';
-import { generateHistoryData } from '../utils/mockData';
+import { useApp } from '../context/AppContext';
+import { historyMaxItems, prepareHistoryChart } from '../utils/historyChart';
 import './HistoryPage.css';
 
 const SENSOR_COLORS = {
@@ -40,106 +41,86 @@ function getRangeDates(range) {
   const now = new Date();
   switch (range) {
     case '1H': return { from: subHours(now, 1), to: now };
-    case '24H': return { from: subHours(now, 24), to: now };
-    case '7D': return { from: subDays(now, 7), to: now };
-    case '30D': return { from: subDays(now, 30), to: now };
+    case '24H': return { from: startOfDay(now), to: endOfDay(now) };
+    case '7D': return { from: startOfDay(subDays(now, 6)), to: endOfDay(now) };
+    case '30D': return { from: startOfDay(subDays(now, 29)), to: endOfDay(now) };
     default: return { from: subHours(now, 24), to: now };
   }
 }
 
 export default function HistoryPage() {
+  const { selectedFarmId } = useApp();
   const [range, setRange] = useState('7D');
   const [activeKeys, setActiveKeys] = useState(Object.keys(SENSOR_COLORS));
   const [selectedDay, setSelectedDay] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [dailyAgg, setDailyAgg] = useState([]);
+  const [dailySource, setDailySource] = useState('loading');
   const [hourlyData, setHourlyData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingHour, setLoadingHour] = useState(false);
-  const [usingMock, setUsingMock] = useState(false);
+  const [chartError, setChartError] = useState('');
+  const [hourlyError, setHourlyError] = useState('');
 
   // Load chart data when range changes
   useEffect(() => {
     setLoading(true);
+    setChartError('');
     const { from, to } = getRangeDates(range);
-    getAllSensorsHistory(from, to, 600)
+    getAllSensorsHistory(from, to, historyMaxItems(range), selectedFarmId)
       .then(data => {
-        if (data.length === 0) throw new Error('empty');
+        if (data.length === 0) {
+          setChartData([]);
+          setChartError('Belum ada history sensor pada rentang waktu ini.');
+          return;
+        }
         setChartData(data);
-        setUsingMock(false);
       })
       .catch(() => {
-        // Fallback to mock data
-        const mock = generateHistoryData(30);
-        const cutoff = from.getTime();
-        const filtered = mock.filter(d => new Date(d.timestamp).getTime() >= cutoff);
-        const step = Math.max(1, Math.floor(filtered.length / 150));
-        setChartData(filtered.filter((_, i) => i % step === 0));
-        setUsingMock(true);
+        setChartData([]);
+        setChartError('History RTDB tidak dapat dibaca. Periksa koneksi Firebase dan aturan database.');
       })
       .finally(() => setLoading(false));
-  }, [range]);
+  }, [range, selectedFarmId]);
 
   // Load daily summary
   useEffect(() => {
-    getDailySummary(30)
+    setDailySource('loading');
+    getDailySummary(30, selectedFarmId)
       .then(data => {
-        if (data.length === 0) throw new Error('empty');
         setDailyAgg(data);
+        setDailySource(data.length ? 'rtdb' : 'empty');
       })
       .catch(() => {
-        // Fallback mock daily
-        const mock = generateHistoryData(30);
-        const groups = {};
-        mock.forEach(d => {
-          const day = d.timestamp.split('T')[0];
-          if (!groups[day]) groups[day] = { temperature: [], ph: [], tds: [], do: [], turbidity: [] };
-          ['temperature', 'ph', 'tds', 'do', 'turbidity'].forEach(k => { if (d[k]) groups[day][k].push(d[k]); });
-        });
-        const avg = arr => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : null;
-        const rows = Object.entries(groups).map(([date, vals]) => ({
-          date,
-          temperature: avg(vals.temperature),
-          ph: avg(vals.ph),
-          tds: avg(vals.tds),
-          do: avg(vals.do),
-          turbidity: avg(vals.turbidity),
-        }));
-        setDailyAgg(rows.sort((a, b) => a.date.localeCompare(b.date)));
+        setDailyAgg([]);
+        setDailySource('error');
       });
-  }, []);
+  }, [selectedFarmId]);
 
   // Load hourly data when a day is selected
   useEffect(() => {
     if (!selectedDay) return;
     setLoadingHour(true);
-    getHourlyData(selectedDay)
-      .then(data => setHourlyData(data))
+    setHourlyError('');
+    getHourlyData(selectedDay, selectedFarmId)
+      .then(data => {
+        setHourlyData(data);
+        if (!data.some(row => Object.keys(SENSOR_COLORS).some(key => row[key] != null))) {
+          setHourlyError('Tidak ada data RTDB untuk tanggal ini.');
+        }
+      })
       .catch(() => {
-        const mock = generateHistoryData(30);
-        const dayData = mock.filter(d => d.timestamp.startsWith(selectedDay));
-        const groups = {};
-        dayData.forEach(d => {
-          const h = new Date(d.timestamp).getHours();
-          if (!groups[h]) groups[h] = { temperature: [], ph: [], tds: [], do: [], turbidity: [] };
-          ['temperature', 'ph', 'tds', 'do', 'turbidity'].forEach(k => { if (d[k]) groups[h][k].push(d[k]); });
-        });
-        const avg = arr => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : null;
-        setHourlyData(Array.from({ length: 24 }, (_, h) => ({
-          hour: `${String(h).padStart(2, '0')}:00`,
-          temperature: avg((groups[h] || {}).temperature || []),
-          ph: avg((groups[h] || {}).ph || []),
-          tds: avg((groups[h] || {}).tds || []),
-          do: avg((groups[h] || {}).do || []),
-          turbidity: avg((groups[h] || {}).turbidity || []),
-        })));
+        setHourlyData([]);
+        setHourlyError('Detail per jam RTDB tidak dapat dibaca.');
       })
       .finally(() => setLoadingHour(false));
-  }, [selectedDay]);
+  }, [selectedDay, selectedFarmId]);
 
+  const rangeDates = useMemo(() => getRangeDates(range), [range]);
   const formattedChart = useMemo(() =>
-    chartData.map(d => ({ ...d, ts: new Date(d.timestamp).getTime() })),
-    [chartData]
+    prepareHistoryChart(chartData, range, rangeDates.from)
+      .map(d => ({ ...d, ts: new Date(d.timestamp).getTime() })),
+    [chartData, range, rangeDates]
   );
 
   const toggleKey = (key) => {
@@ -163,8 +144,7 @@ export default function HistoryPage() {
         <div>
           <h1 className="page-title">History</h1>
           <p className="page-subtitle">
-            Historical data is stored in Firebase Firestore
-            {usingMock && <span className="mock-badge"> · Simulation Mode</span>}
+            Historical data is stored in Firebase Realtime Database
           </p>
         </div>
       </div>
@@ -205,12 +185,16 @@ export default function HistoryPage() {
             <span className="spinner" />
             <span>Loading data from Firebase…</span>
           </div>
+        ) : chartError ? (
+          <div className="history-empty">{chartError}</div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={formattedChart} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis
                 dataKey="ts"
+                type="number"
+                domain={[rangeDates.from.getTime(), rangeDates.to.getTime()]}
                 tickFormatter={formatX}
                 tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'DM Mono' }}
                 axisLine={false} tickLine={false}
@@ -219,7 +203,13 @@ export default function HistoryPage() {
               <YAxis tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'DM Mono' }} axisLine={false} tickLine={false} width={38} />
               <Tooltip
                 contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
-                labelFormatter={v => new Date(v).toLocaleString('en-US')}
+                labelFormatter={v => {
+                  const d = new Date(v);
+                  if (range === '1H') return `Detail ${format(d, 'HH:mm')} (interval 2 menit)`;
+                  if (range === '24H') return `Rata-rata ${format(d, 'HH:00')}–${format(d, 'HH:59')}`;
+                  if (range === '7D' || range === '30D') return `Rata-rata harian ${format(d, 'dd MMM yyyy')}`;
+                  return d.toLocaleString('id-ID');
+                }}
               />
               {activeKeys.map(key => (
                 <Line key={key} type="monotone" dataKey={key} stroke={SENSOR_COLORS[key]}
@@ -233,8 +223,16 @@ export default function HistoryPage() {
       {/* Daily summary table */}
       <div className="chart-card">
         <div className="card-header-row">
-          <h3 className="card-label">Daily Summary – Firebase Firestore</h3>
-          <span className="card-sub">Click a row to view hourly details</span>
+          <h3 className="card-label">Daily Summary</h3>
+          <div className="daily-table-meta">
+            <span className={`daily-source-badge ${dailySource}`}>
+              {dailySource === 'rtdb' && 'Firebase RTDB'}
+              {dailySource === 'empty' && 'No RTDB history yet'}
+              {dailySource === 'error' && 'RTDB unavailable'}
+              {dailySource === 'loading' && 'Loading RTDB…'}
+            </span>
+            <span className="card-sub">Click a row to view hourly details</span>
+          </div>
         </div>
         <div className="table-wrap">
           <table className="data-table">
@@ -249,7 +247,9 @@ export default function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {dailyAgg.slice(-30).reverse().map(row => (
+              {dailyAgg.length === 0 ? (
+                <tr><td className="table-empty" colSpan="6">Belum ada data history dari RTDB.</td></tr>
+              ) : dailyAgg.slice(-30).reverse().map(row => (
                 <tr
                   key={row.date}
                   className={`data-row ${selectedDay === row.date ? 'selected' : ''}`}
@@ -278,6 +278,8 @@ export default function HistoryPage() {
           </h3>
           {loadingHour ? (
             <div className="chart-loading"><span className="spinner" /><span>Loading…</span></div>
+          ) : hourlyError ? (
+            <div className="history-empty">{hourlyError}</div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={hourlyData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>

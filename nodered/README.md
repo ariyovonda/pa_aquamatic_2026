@@ -29,12 +29,12 @@ Buka [http://localhost:1880](http://localhost:1880)
 
 Buka Node-RED → Menu (☰) → Manage Palette → Install:
 
-| Package | Fungsi |
-|---------|--------|
-| `node-red-contrib-firebase-rtdb` | Write ke Realtime Database |
-| `node-red-contrib-cloud-firestore` | Write ke Firestore |
-| `node-red-contrib-mqtt` | Koneksi MQTT broker |
-| `node-red-node-serialport` | Komunikasi Serial ke Arduino |
+| Package                            | Fungsi                       |
+| ---------------------------------- | ---------------------------- |
+| `node-red-contrib-firebase-rtdb`   | Write ke Realtime Database   |
+| `node-red-contrib-cloud-firestore` | Write ke Firestore           |
+| `node-red-contrib-mqtt`            | Koneksi MQTT broker          |
+| `node-red-node-serialport`         | Komunikasi Serial ke Arduino |
 
 Atau via command line:
 
@@ -68,43 +68,43 @@ mosquitto -v
 
 Double-click node **"Mosquitto Local"** → Edit:
 
-| Field | Value |
-|-------|-------|
-| Name | Mosquitto Local |
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Name       | Mosquitto Local          |
 | Connection | localhost atau IP broker |
-| Port | 1883 |
-| Client ID | nodered-aquaponics |
+| Port       | 1883                     |
+| Client ID  | nodered-aquaponics       |
 
 ### Firebase Realtime Database
 
 Double-click node **"RTDB: Set Sensor"**:
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                |
+| ---------------- | -------------------- |
 | Firebase Project | [Pilih project Anda] |
-| Operation | set |
-| Path Type | msg |
-| Path Field | rtdbPath |
+| Operation        | set                  |
+| Path Type        | msg                  |
+| Path Field       | rtdbPath             |
 
 ### Firebase Firestore
 
 Double-click node **"Firestore: sensor_readings"**:
 
-| Field | Value |
-|-------|-------|
+| Field            | Value                |
+| ---------------- | -------------------- |
 | Firebase Project | [Pilih project Anda] |
-| Collection | sensor_readings |
-| Operation | add |
+| Collection       | sensor_readings      |
+| Operation        | add                  |
 
 ### Serial Port (Arduino)
 
 Double-click node **"Serial → Arduino"**:
 
-| Field | Value |
-|-------|-------|
-| Serial Port | COM3 (sesuaikan) |
-| Baud Rate | 9600 |
-| Newline | \n |
+| Field       | Value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| Serial Port | COM3 (sesuaikan dengan port Arduino kamu, misalnya COM3, COM4, COM5) |
+| Baud Rate   | 9600                                                                 |
+| Newline     | \n                                                                   |
 
 Cek port Arduino: Windows → Device Manager → Ports (COM & LPT)
 
@@ -158,28 +158,31 @@ Cek port Arduino: Windows → Device Manager → Ports (COM & LPT)
 
 ### Sensor (ESP → Node-RED)
 
-| Topic | Payload |
-|-------|---------|
+| Topic                            | Payload           |
+| -------------------------------- | ----------------- |
 | `aquaponics/sensors/temperature` | `{"value": 26.5}` |
-| `aquaponics/sensors/ph` | `{"value": 7.2}` |
-| `aquaponics/sensors/tds` | `{"value": 150}` |
-| `aquaponics/sensors/do` | `{"value": 5.5}` |
-| `aquaponics/sensors/turbidity` | `{"value": 12}` |
+| `aquaponics/sensors/ph`          | `{"value": 7.2}`  |
+| `aquaponics/sensors/tds`         | `{"value": 150}`  |
+| `aquaponics/sensors/do`          | `{"value": 5.5}`  |
+| `aquaponics/sensors/turbidity`   | `{"value": 12}`   |
 
 ### Aktuator (Web → ESP via Serial)
 
-| Topic | Payload |
-|-------|---------|
-| `aquaponics/actuators/waterPump/command` | `{"action": "ON"}` |
-| `aquaponics/actuators/aerator/command` | `{"action": "OFF"}` |
-| `aquaponics/actuators/heater/command` | `{"action": "ON"}` |
+| Topic                                        | Payload             |
+| -------------------------------------------- | ------------------- |
+| `aquaponics/actuators/waterPump/command`     | `{"action": "ON"}`  |
+| `aquaponics/actuators/aerator/command`       | `{"action": "OFF"}` |
+| `aquaponics/actuators/heater/command`        | `{"action": "ON"}`  |
+| `aquaponics/actuators/phPumpDown/command`    | `{"action": "ON"}`  |
+| `aquaponics/actuators/phPumpUp/command`      | `{"action": "ON"}`  |
+| `aquaponics/actuators/nutritionPump/command` | `{"action": "ON"}`  |
 
 ## Payload Format
 
 ### Input (dari ESP)
 
 ```json
-{"value": 26.5}
+{ "value": 26.5 }
 ```
 
 ### Output ke Firebase RTDB
@@ -207,13 +210,13 @@ Cek port Arduino: Windows → Device Manager → Ports (COM & LPT)
 
 ## Status Validation
 
-| Sensor | Normal Range |
-|--------|--------------|
-| temperature | 20°C - 30°C |
-| pH | 5.5 - 8.0 |
-| TDS | 400 - 800 ppm |
-| DO | 4 - 10 mg/L |
-| turbidity | 0.5 - 5.0 NTU |
+| Sensor      | Normal Range  |
+| ----------- | ------------- |
+| temperature | 20°C - 30°C   |
+| pH          | 5.5 - 8.0     |
+| TDS         | 400 - 800 ppm |
+| DO          | 4 - 10 mg/L   |
+| turbidity   | 0.5 - 5.0 NTU |
 
 ## Troubleshooting
 
@@ -300,7 +303,7 @@ void loop() {
 
 ## File
 
-| File | Deskripsi |
-|------|-----------|
+| File        | Deskripsi                      |
+| ----------- | ------------------------------ |
 | `flow.json` | Node-RED flow yang siap import |
-| `README.md` | Dokumentasi ini |
+| `README.md` | Dokumentasi ini                |

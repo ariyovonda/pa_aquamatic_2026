@@ -1,64 +1,22 @@
 {
-  "actuators": {
-    "aerator": {
-      "enabled": true,
-      "mode": "auto",
-      "running": false,
-      "status": "off",
-      "updatedAt": 1704067200000
-    },
-    "buzzer": {
-      "enabled": true,
-      "mode": "auto",
-      "running": false,
-      "status": "off",
-      "updatedAt": 1704067200000
-    },
-    "heater": {
-      "enabled": true,
-      "mode": "auto",
-      "running": false,
-      "status": "off",
-      "updatedAt": 1704067200000
-    },
-    "waterPump": {
-      "enabled": true,
-      "mode": "auto",
-      "running": false,
-      "status": "off",
-      "updatedAt": 1704067200000
-    }
-  },
   "sensors": {
-    "do": {
-      "status": "normal",
-      "unit": "mg/L",
-      "updatedAt": 1704067200000,
-      "value": 5.5
-    },
-    "ph": {
-      "status": "normal",
-      "unit": "pH",
-      "updatedAt": 1704067200000,
-      "value": 7.0
-    },
-    "tds": {
-      "status": "normal",
-      "unit": "ppm",
-      "updatedAt": 1704067200000,
-      "value": 150
-    },
-    "temperature": {
-      "status": "normal",
-      "unit": "°C",
-      "updatedAt": 1704067200000,
-      "value": 26.5
-    },
-    "turbidity": {
-      "status": "normal",
-      "unit": "NTU",
-      "updatedAt": 1704067200000,
-      "value": 15
-    }
+    "temperature": { "value": 26.5, "unit": "C", "status": "normal", "enabled": true, "updatedAt": 1704067200000 },
+    "ph": { "value": 7, "unit": "pH", "status": "normal", "enabled": true, "updatedAt": 1704067200000 },
+    "tds": { "value": 550, "unit": "ppm", "status": "normal", "enabled": true, "updatedAt": 1704067200000 },
+    "do": { "value": 5.5, "unit": "mg/L", "status": "normal", "enabled": true, "updatedAt": 1704067200000 },
+    "turbidity": { "value": 3, "unit": "NTU", "status": "normal", "enabled": true, "updatedAt": 1704067200000 }
+  },
+  "actuators": {
+    "waterPump": { "enabled": true, "mode": "manual", "running": true, "updatedAt": 1704067200000 },
+    "aerator": { "enabled": true, "mode": "manual", "running": true, "updatedAt": 1704067200000 },
+    "heater": { "enabled": false, "mode": "manual", "running": false, "updatedAt": 1704067200000 },
+    "buzzer": { "enabled": true, "mode": "auto", "automation": { "sensor": "tds", "condition": "above", "value": 500, "hysteresis": 0 }, "running": false, "updatedAt": 1704067200000 },
+    "phPumpDown": { "enabled": false, "mode": "auto", "automation": { "sensor": "ph", "condition": "above", "value": 8, "hysteresis": 0 }, "running": false, "updatedAt": 1704067200000 },
+    "phPumpUp": { "enabled": false, "mode": "auto", "automation": { "sensor": "ph", "condition": "below", "value": 6, "hysteresis": 0 }, "running": false, "updatedAt": 1704067200000 },
+    "nutritionPump": { "enabled": true, "mode": "auto", "automation": { "sensor": "tds", "condition": "below", "value": 200, "hysteresis": 0 }, "running": false, "updatedAt": 1704067200000 }
+  },
+  "history": {
+    "sensors": {},
+    "actuators": {}
   }
 }
