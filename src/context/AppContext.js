@@ -82,7 +82,17 @@ const ACTUATOR_DEFAULTS = {
     label: "Buzzer (Alarm)",
     enabled: true,
     mode: "auto",
-    automation: { sensor: "tds", condition: "above", value: 500, hysteresis: 0 },
+    automation: {
+      sensor: "tds",
+      condition: "above",
+      value: 500,
+      hysteresis: 0,
+      match: "any",
+      rules: {
+        tds: { enabled: true, sensor: "tds", condition: "above", value: 500, hysteresis: 0 },
+        turbidity: { enabled: true, sensor: "turbidity", condition: "above", value: 1000, hysteresis: 0 },
+      },
+    },
   },
   phPumpDown: {
     id: "phPumpDown",

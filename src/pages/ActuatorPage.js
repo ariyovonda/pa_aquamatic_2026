@@ -233,6 +233,37 @@ const ACTUATOR_CAPABILITIES = {
   nutritionPump: { automation: true, sensors: ["tds"], condition: "below" },
 };
 
+const BUZZER_DEFAULT_RULES = {
+  tds: { enabled: true, sensor: "tds", condition: "above", value: 500, hysteresis: 0 },
+  turbidity: { enabled: true, sensor: "turbidity", condition: "above", value: 1000, hysteresis: 0 },
+};
+
+function getBuzzerRules(automation = {}) {
+  const savedRules = automation.rules || {};
+  return {
+    tds: {
+      ...BUZZER_DEFAULT_RULES.tds,
+      ...(savedRules.tds || {}),
+      value: Number(savedRules.tds?.value ?? automation.value ?? BUZZER_DEFAULT_RULES.tds.value),
+      hysteresis: Number(savedRules.tds?.hysteresis ?? automation.hysteresis ?? 0),
+    },
+    turbidity: {
+      ...BUZZER_DEFAULT_RULES.turbidity,
+      ...(savedRules.turbidity || {}),
+      value: Number(savedRules.turbidity?.value ?? BUZZER_DEFAULT_RULES.turbidity.value),
+      hysteresis: Number(savedRules.turbidity?.hysteresis ?? 0),
+    },
+  };
+}
+
+function formatAutomationRule(id, automation) {
+  if (id === "buzzer") {
+    const rules = getBuzzerRules(automation);
+    return `TDS > ${rules.tds.value} / Turbidity > ${rules.turbidity.value}`;
+  }
+  return `${SENSOR_OPTIONS[automation.sensor]?.label || automation.sensor} ${automation.condition === "below" ? "<" : ">"} ${automation.value}`;
+}
+
 function ActuatorCard({ id, act, color, bg, icon, onToggle, onSaveAutomation }) {
   const capability = ACTUATOR_CAPABILITIES[id] || { automation: false };
   const displayMode = capability.automation ? act.mode || "manual" : "manual";
@@ -243,6 +274,20 @@ function ActuatorCard({ id, act, color, bg, icon, onToggle, onSaveAutomation }) 
   const normalizeDraft = (source) => {
     const fallbackSensor = supportedSensors[0] || "temperature";
     const automation = source.automation || {};
+    if (id === "buzzer") {
+      const rules = getBuzzerRules(automation);
+      return {
+        mode: capability.automation ? source.mode || "manual" : "manual",
+        automation: {
+          sensor: "tds",
+          condition: "above",
+          value: rules.tds.value,
+          hysteresis: rules.tds.hysteresis,
+          match: "any",
+          rules,
+        },
+      };
+    }
     return {
       mode: capability.automation ? source.mode || "manual" : "manual",
       automation: {
@@ -310,7 +355,7 @@ function ActuatorCard({ id, act, color, bg, icon, onToggle, onSaveAutomation }) 
           <span className="stat-label">Auto Rule</span>
           <span className="stat-val">
             {displayMode === "auto" && act.automation
-              ? `${SENSOR_OPTIONS[act.automation.sensor]?.label || act.automation.sensor} ${act.automation.condition === "below" ? "<" : ">"} ${act.automation.value}`
+              ? formatAutomationRule(id, act.automation)
               : !capability.automation ? capability.manualLabel || "Cycle ON/OFF" : "Manual"}
           </span>
         </div>
@@ -330,55 +375,96 @@ function ActuatorCard({ id, act, color, bg, icon, onToggle, onSaveAutomation }) 
           </div>
           {draft.mode === "auto" && (
             <>
-              <div className="edit-row">
-                <label>Sensor</label>
-                <select
-                  value={draft.automation.sensor}
-                  onChange={(e) => setDraft((prev) => ({
-                    ...prev,
-                    automation: { ...prev.automation, sensor: e.target.value },
-                  }))}
-                >
-                  {supportedSensors.map((key) => (
-                    <option key={key} value={key}>{SENSOR_OPTIONS[key].label}</option>
+              {id === "buzzer" ? (
+                <>
+                  <div className="edit-row">
+                    <label>Kondisi</label>
+                    <span>Buzzer aktif jika salah satu threshold terlewati</span>
+                  </div>
+                  {Object.entries(getBuzzerRules(draft.automation)).map(([ruleKey, rule]) => (
+                    <div className="edit-row" key={ruleKey}>
+                      <label>{SENSOR_OPTIONS[rule.sensor].label}</label>
+                      <div className="edit-input-wrap">
+                        <span className="unit">{rule.condition === "above" ? ">" : "<"}</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={rule.value}
+                          onChange={(e) => setDraft((prev) => {
+                            const currentRules = getBuzzerRules(prev.automation);
+                            return {
+                              ...prev,
+                              automation: {
+                                ...prev.automation,
+                                rules: {
+                                  ...currentRules,
+                                  [ruleKey]: {
+                                    ...currentRules[ruleKey],
+                                    value: Number(e.target.value),
+                                  },
+                                },
+                              },
+                            };
+                          })}
+                        />
+                        <span className="unit">{SENSOR_OPTIONS[rule.sensor].unit}</span>
+                      </div>
+                    </div>
                   ))}
-                </select>
-              </div>
-              <div className="edit-row">
-                <label>Kondisi</label>
-                <span>{draft.automation.condition === "below" ? "Di bawah threshold" : "Di atas threshold"}</span>
-              </div>
-              <div className="edit-row">
-                <label>Threshold</label>
-                <div className="edit-input-wrap">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={draft.automation.value}
-                    onChange={(e) => setDraft((prev) => ({
-                      ...prev,
-                      automation: { ...prev.automation, value: Number(e.target.value) },
-                    }))}
-                  />
-                  <span className="unit">{SENSOR_OPTIONS[draft.automation.sensor]?.unit}</span>
-                </div>
-              </div>
-              <div className="edit-row">
-                <label>Hysteresis</label>
-                <div className="edit-input-wrap">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    value={draft.automation.hysteresis}
-                    onChange={(e) => setDraft((prev) => ({
-                      ...prev,
-                      automation: { ...prev.automation, hysteresis: Number(e.target.value) },
-                    }))}
-                  />
-                  <span className="unit">{SENSOR_OPTIONS[draft.automation.sensor]?.unit}</span>
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  <div className="edit-row">
+                    <label>Sensor</label>
+                    <select
+                      value={draft.automation.sensor}
+                      onChange={(e) => setDraft((prev) => ({
+                        ...prev,
+                        automation: { ...prev.automation, sensor: e.target.value },
+                      }))}
+                    >
+                      {supportedSensors.map((key) => (
+                        <option key={key} value={key}>{SENSOR_OPTIONS[key].label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="edit-row">
+                    <label>Kondisi</label>
+                    <span>{draft.automation.condition === "below" ? "Di bawah threshold" : "Di atas threshold"}</span>
+                  </div>
+                  <div className="edit-row">
+                    <label>Threshold</label>
+                    <div className="edit-input-wrap">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={draft.automation.value}
+                        onChange={(e) => setDraft((prev) => ({
+                          ...prev,
+                          automation: { ...prev.automation, value: Number(e.target.value) },
+                        }))}
+                      />
+                      <span className="unit">{SENSOR_OPTIONS[draft.automation.sensor]?.unit}</span>
+                    </div>
+                  </div>
+                  <div className="edit-row">
+                    <label>Hysteresis</label>
+                    <div className="edit-input-wrap">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={draft.automation.hysteresis}
+                        onChange={(e) => setDraft((prev) => ({
+                          ...prev,
+                          automation: { ...prev.automation, hysteresis: Number(e.target.value) },
+                        }))}
+                      />
+                      <span className="unit">{SENSOR_OPTIONS[draft.automation.sensor]?.unit}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
           <div className="edit-actions">
